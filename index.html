@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js ie6 oldie" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js ie7 oldie" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js ie8 oldie" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<meta charset="utf-8">
+  <head>
+    <title>Visualization of team <i>slack</i> communications for NIH NCATS award project</title>
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="graphvis.css"/>
+  </head>
+  <body>
+    <div id="container" class="container">
+      <header>
+        <h1>Visualization of team  <i>slack</i> communications for NIH <a href="https://ncats.nih.gov/" target="_blank">National Center for Advancing Translational Sciences (NCATS)</a> award project</h1>
+    	<p>This communication network shows how team members interact with each other on <i>slack</i> for NIH NCATS award BioMedical Translator project. </p>
+      </header>
+      <div id="medium_filter" class="control">
+      	<button id="button" onclick="ResetView()">Reset View</button>
+	  </div>
+	  <div id="container">	
+		  <div id="chart"></div>
+	      <div id="datainfo" data-placeholder="Display details on the selected node..."></div>
+      </div>
+      <script type="text/javascript" src="graphvis.js"></script>
+	</div>
+  </body>
+</html>
