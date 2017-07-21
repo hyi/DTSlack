@@ -33,10 +33,6 @@ div.tooltip {
   pointer-events: none;
 }
 
-div[id='chart'] {
-	float: left;
-}
-
 div:empty::before {
   color: grey;
 }
@@ -45,7 +41,6 @@ div[data-placeholder]:not([data-placeholder=""]):empty::before {
 }
 
 div[id='datainfo'] {
-    margin-left: 455px;
     background-color:#ffffff;
     padding-top: 1em;
     padding-right: 2em;

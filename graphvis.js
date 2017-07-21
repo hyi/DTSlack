@@ -1,5 +1,5 @@
-var width = 450,
-    height = 400,
+var width = 1000,
+    height = 500,
     radius = 6;
 
 var tooltip = d3.select("body").append("div")   
@@ -110,6 +110,21 @@ function fadeRelativeToNode(opacity) {
 		}
 	}
 }
+
+function fadeRelativeToLink(opacity) {
+    return function(d) {
+        if (typeof(node) != "undefined")
+            node.style("stroke-opacity", function(o) {
+                thisOpacity = (o==d.source || o==d.target ? 1 : opacity);
+                this.setAttribute('fill-opacity', thisOpacity);
+                return thisOpacity;
+            });
+
+        link.style("stroke-opacity", opacity).style("stroke-opacity", function(o) {
+            return o === d ? 1 : opacity;
+        });
+    }
+}
         
 function updateData() {
 	if (!initial_display) {
@@ -128,7 +143,9 @@ function updateData() {
 	    .attr("class", "link")
 	    .style("opacity", link_opacity_val)
 	    .style("stroke", "#999")
-		.style("stroke-width", function(d) { return d.count; })
+		.style("stroke-width", function(d) { return d.count*2; })
+		.on("mouseover", fadeRelativeToLink(0.3))
+        .on("mouseout", fadeRelativeToLink(1))
 		.on("click", function(d) {
 			selEdgeSource = d.source;
 			selEdgeTarget = d.target;	
@@ -149,6 +166,27 @@ function updateData() {
 	            lastSelNode = null;
 	        }	
 			
+			if(!sel_same_link) {	
+				lastSelLink = d3.select(this);
+				lastSelLink.transition() 
+					.duration(500)
+					.style("stroke", "black");
+				htmltext = "<b>Slack Communication Channels</b>: " + d.channel + "<br>";
+				htmltext += "<b>Reacted Message Text:</b> " + d.text + "<br>";
+				d3.select("#datainfo").html(htmltext);
+				lastSelEdgeSource = selEdgeSource;
+				lastSelEdgeTarget = selEdgeTarget; 	
+			}
+			else {// clear out the selection if the selected link is clicked again
+				d3.select(this).transition() 
+					.duration(500)
+					.style("stroke", "#999");
+				lastSelLink = null;	
+				lastSelEdgeSource = -1;
+				lastSelEdgeTarget = -1;
+				d3.select("#datainfo").html(""); 	
+			}
+			
 			// clear out previously clicked/hgted other nodes if any
 			if(lastSelNode != null) {
 				lastSelNode.style("stroke", node_stroke_clr);
@@ -159,7 +197,7 @@ function updateData() {
 	force
 		.nodes(nodeData)
 	    .links(linkData)
-	    .start();
+		.start(); // has to be call here to make weight property on node available
 
     var node_drag = d3.behavior.drag()
         .on("dragstart", dragstart)
@@ -193,7 +231,7 @@ function updateData() {
 	        }
 	        
 	        if(!sel_same_node) {		        
-	            htmltext = "<b>" + d.name+" team </b>" + d.email + "<br><br>";
+	            htmltext = "<b>" + d.name +"  </b>" + d.email + "<br><br>";
 	            d3.select("#datainfo").html(htmltext); 
 		        lastSelNode = d3.select(this).select("circle");
 		        lastSelNodeName = d.name; 
