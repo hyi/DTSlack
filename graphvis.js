@@ -256,7 +256,7 @@ function updateData() {
 		.style("stroke", node_stroke_clr);
 
 	fnode.append("text")
-    	.attr("x", radius+2)
+    	.attr("x", function(d) { return radius + (d.weight*Math.sqrt(radius)); })
     	.attr("dy", ".35em")
     	.text(function(d) { return d.name; });
 	
