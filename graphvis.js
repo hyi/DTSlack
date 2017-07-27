@@ -49,10 +49,16 @@ function tick() {
     	return "translate(" + d.x + "," + d.y + ")";
     });
 
-	link.attr("x1", function(d) { return d.source.x; })
-    	.attr("y1", function(d) { return d.source.y; })
-    	.attr("x2", function(d) { return d.target.x; })
-    	.attr("y2", function(d) { return d.target.y; });
+	//link.attr("x1", function(d) { return d.source.x; })
+    //	.attr("y1", function(d) { return d.source.y; })
+    //	.attr("x2", function(d) { return d.target.x; })
+    //	.attr("y2", function(d) { return d.target.y; });
+    link.attr("d", function(d) {
+        var dx = d.target.x - d.source.x,
+            dy = d.target.y - d.source.y,
+            dr = Math.sqrt(dx*dx+dy*dy);
+        return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
+    })
 }
 
 var node_drag = d3.behavior.drag()
@@ -132,18 +138,17 @@ function updateData() {
 		node = svg.selectAll(".node")
 	              .data([]);
 	    node.exit().remove();
-		link = svg.selectAll("line.link")
+		link = svg.selectAll("path.link")
 	    	      .data([]);
 		link.exit().remove();			
 	}
 	
-	link = svg.selectAll("line.link")
+	link = svg.selectAll("path.link")
            .data(linkData);
-	link.enter().append("line")
-	    .attr("class", "link")
+	link.enter().append("path")
+	    .attr("class", function(d) { return "link " + d.type; })
 	    .style("opacity", link_opacity_val)
-	    .style("stroke", "#999")
-		.style("stroke-width", function(d) { return d.count*2; })
+	    .style("stroke-width", function(d) { return 1 + Math.sqrt(d.count); })
 		.on("mouseover", fadeRelativeToLink(0.3))
         .on("mouseout", fadeRelativeToLink(1))
 		.on("click", function(d) {
@@ -172,6 +177,8 @@ function updateData() {
 					.duration(500)
 					.style("stroke", "black");
 				htmltext = "<b>Slack Communication Channels</b>: " + d.channel + "<br>";
+                htmltext += "<b>Message initiator: </b>: " + d.source.name + "<br>";
+                htmltext += "<b>Message reactor: </b>: " + d.target.name + "<br>";
 				htmltext += "<b>Reacted Message Text:</b> " + d.text + "<br>";
 				d3.select("#datainfo").html(htmltext);
 				lastSelEdgeSource = selEdgeSource;
