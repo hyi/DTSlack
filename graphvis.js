@@ -8,12 +8,12 @@ var tooltip = d3.select("body").append("div")
 
 var node_opacity_val = 1;
 var link_opacity_val = 0.8;
-var initial_display = true;
-var node, link, linkData, nodeData, force;	
+var node, link, linkData, nodeData, force, max_weight = 0, max_weight_node = null;
 var linkedByIndex = {};					
-var lastSelNode = null, lastSelLink = null, lastSelNodeName = null, lastSelEdgeSource=-1, lastSelEdgeTarget=-1;
+var lastSelNode = null, lastSelLink = null, lastSelLinkClr = null, lastSelNodeName = null, lastSelEdgeSource=-1, lastSelEdgeTarget=-1;
 var node_stroke_clr = d3.rgb(142, 186, 229).darker();
 var node_fill_clr = d3.rgb(153, 186, 221);
+var link_sel_clr;
 var zoom = d3.behavior.zoom();
 
 d3.select("#datainfo").style.width=width+"px";	
@@ -32,7 +32,7 @@ var rect = svg.append("rect")
     .style("pointer-events", "all");
 
 force = d3.layout.force()
-          .gravity(.01)
+          .gravity(.1)
           .charge(-200)
           .linkDistance(100)
           .size([width, height]);
@@ -41,7 +41,7 @@ function zoom_redraw() {
 	 svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
     //svg.attr("transform", "scale(" + d3.event.scale + ")");
 }
-	                
+
 function tick() {
 	node.attr("transform", function(d) {
 		d.x = Math.max(radius, Math.min(width - radius, d.x));
@@ -80,7 +80,7 @@ function dragmove(d, i) {
 }
 
 function dragend(d, i) {
-    d.fixed = true; // of course set the node to fixed so the force doesn't include the node in its auto positioning stuff
+    d.fixed = true; // set the node to fixed so the force doesn't include the node in its auto positioning stuff
     tick();
     force.resume();
 }
@@ -133,16 +133,6 @@ function fadeRelativeToLink(opacity) {
 }
         
 function updateData() {
-	if (!initial_display) {
-		force.stop();
-		node = svg.selectAll(".node")
-	              .data([]);
-	    node.exit().remove();
-		link = svg.selectAll("path.link")
-	    	      .data([]);
-		link.exit().remove();			
-	}
-	
 	link = svg.selectAll("path.link")
            .data(linkData);
 	link.enter().append("path")
@@ -160,7 +150,7 @@ function updateData() {
 	        	
 			// clear out previously clicked/hgted other links if any
 			if(lastSelLink != null) {
-				lastSelLink.style("stroke", "#999");
+				lastSelLink.style("stroke", lastSelLinkClr);
 				lastSelEdgeSource = -1;
 				lastSelEdgeTarget = -1;
 			}
@@ -173,13 +163,19 @@ function updateData() {
 			
 			if(!sel_same_link) {	
 				lastSelLink = d3.select(this);
+                lastSelLinkClr = lastSelLink.style('stroke')
 				lastSelLink.transition() 
 					.duration(500)
 					.style("stroke", "black");
 				htmltext = "<b>Slack Communication Channels</b>: " + d.channel + "<br>";
+                htmltext = "<b>Communication Type</b>: " + d.type + "<br>";
                 htmltext += "<b>Message initiator: </b>: " + d.source.name + "<br>";
                 htmltext += "<b>Message reactor: </b>: " + d.target.name + "<br>";
-				htmltext += "<b>Reacted Message Text:</b> " + d.text + "<br>";
+				htmltext += "<b>Parent Message:</b> " + d.text + "<br>";
+                if (d.threaded_text)
+                    htmltext += "<b>Threaded Messages:</b> " + d.threaded_text + "<br>";
+                if (d.reactions)
+                    htmltext += "<b>Reactions:</b> " + d.reactions + "<br>";
 				d3.select("#datainfo").html(htmltext);
 				lastSelEdgeSource = selEdgeSource;
 				lastSelEdgeTarget = selEdgeTarget; 	
@@ -187,8 +183,9 @@ function updateData() {
 			else {// clear out the selection if the selected link is clicked again
 				d3.select(this).transition() 
 					.duration(500)
-					.style("stroke", "#999");
-				lastSelLink = null;	
+					.style("stroke", lastSelLinkClr);
+				lastSelLink = null;
+                lastSelLinkClr = null;
 				lastSelEdgeSource = -1;
 				lastSelEdgeTarget = -1;
 				d3.select("#datainfo").html(""); 	
@@ -251,8 +248,20 @@ function updateData() {
 		.on("mouseover", fadeRelativeToNode(0.3))
 		.on("mouseout", fadeRelativeToNode(node_opacity_val))
 		.call(node_drag);
-		
-	fnode = node.filter(function(d) {return d.weight > 0; });
+
+    fnode = node.filter(function(d) {
+        if(d.weight > max_weight) {
+            max_weight = d.weight;
+            max_weight_node = d;
+        }
+        return d.weight > 0;
+	});
+    if (max_weight_node != null) {
+        max_weight_node.px = width/2;
+        max_weight_node.py = height/2;
+        max_weight_node.fixed = true;
+    }
+
     fnode.append("circle")
 		.attr("r",
             function(d) {
@@ -263,7 +272,7 @@ function updateData() {
 		.style("stroke", node_stroke_clr);
 
 	fnode.append("text")
-    	.attr("x", function(d) { return radius + (d.weight*Math.sqrt(radius)); })
+    	.attr("dx", function(d) { return radius + (d.weight*Math.sqrt(radius))- .75; })
     	.attr("dy", ".35em")
     	.text(function(d) { return d.name; });
 	
@@ -284,6 +293,5 @@ function ResetView() {
 d3.json("inputData.json", function(json) {
 	nodeData = json.nodes;
     linkData = json.links;	
-    initial_display = true;
 	updateData();
 });

@@ -12,12 +12,15 @@ text {
 
 path.link {
   fill: none;
-  stroke: #999;
   stroke-opacity: .6;
 }
 
-path.link.cthreaded {
+path.link.thread {
   stroke: green;
+}
+
+path.link.reaction {
+  stroke: #999;
 }
 
 svg {
