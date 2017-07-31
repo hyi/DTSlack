@@ -15,6 +15,8 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
         source = msg['user']
         stxtstr = msg['text'] if 'text' in msg else ''
 
+        type = ''
+
         if 'reactions' in msg:
             type = 'reaction'
             for react in msg['reactions']:
@@ -33,6 +35,7 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
                                                      'text': stxtstr,
                                                      'reactions': react['name'],
                                                      'count': 1}
+
         if 'thread_ts' in msg:
             type = 'thread'
             if msg['ts'] == msg['thread_ts']:
@@ -63,6 +66,21 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
                                                          'threaded_text': html_msg_str,
                                                          'count': 1}
 
+        if not type:
+            txt = msg['text']
+            idx2 = 0
+            while '@' in txt:
+                idx1 = txt.find('@', idx2)
+                idx2 = txt.find('|', idx1)
+                if idx2 == -1:
+                    idx2 = txt.find('>', idx1)
+                if source != txt[idx1+1:idx2]:
+                    if txt[idx1+1:idx2] in uid_to_node:
+                        # can create message link here
+                        print uid_to_node[source]['name'] + '-' + uid_to_node[txt[idx1+1:idx2]]['name'] + '-' + txt
+                if idx2 == -1 or idx2 >= len(txt)-1:
+                    # end of the text string, break the while loop
+                    break
 
 # append </ul> to all threaded_text key in link_msglist_dict
 def append_list_end_to_all_msgs():

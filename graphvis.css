@@ -20,7 +20,15 @@ path.link.thread {
 }
 
 path.link.reaction {
-  stroke: #999;
+  stroke: blue;
+}
+
+path.link.at {
+    stroke: orange;
+}
+
+path.link.broadcast {
+    stroke: #999;
 }
 
 svg {
