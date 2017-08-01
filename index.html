@@ -15,8 +15,9 @@
         <h1>Visualization of team  <i>slack</i> communications for NIH <a href="https://ncats.nih.gov/" target="_blank">National Center for Advancing Translational Sciences (NCATS)</a> award project</h1>
     	<p>This communication network shows how team members interact with each other on <i>slack</i> for NIH NCATS award BioMedical Translator project. Link colors represent different types of communication. Node colors are slack user profile colors. You can pan, zoom, reset view, or drag a node to influence layout. You can also click a node or link to select it to see communication details in the info box below the visualization, click it again to deselect it or click another node or link to make other selections. </p>
       </header>
-      <div id="medium_filter" class="control">
-      	<button id="button" onclick="ResetView()">Reset View</button>
+      <div>
+      	<button id="reset" onclick="ResetView()">Reset View</button>
+        <span id="display_label"><input type="checkbox" onclick="ToggleTextDisplay(this)" value="text_on"><b>Display node label</b></span>
 	  </div>
 	  <div id="container">	
 		  <div id="chart"></div>

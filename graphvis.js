@@ -6,9 +6,11 @@ var tooltip = d3.select("body").append("div")
     .attr("class", "tooltip")               
     .style("visibility", "hidden");
 
-var node_opacity_val = 1;
+var attached_text, text_on;
+
+var node_opacity_val = 0.8;
 var link_opacity_val = 0.8;
-var node, link, linkData, nodeData, force, max_weight = 0, max_weight_node = null;
+var node, link, fnode, linkData, nodeData, force, max_weight = 0, max_weight_node = null;
 var linkedByIndex = {};					
 var lastSelNode = null, lastSelLink = null, lastSelLinkClr = null, lastSelNodeName = null, lastSelEdgeSource=-1, lastSelEdgeTarget=-1;
 var node_stroke_clr = d3.rgb(142, 186, 229).darker();
@@ -91,43 +93,69 @@ function isConnected(a, b) {
 
 function fadeRelativeToNode(opacity) {
 	return function(d) {
-	  	node.style("stroke-opacity", function(o) {
-	    	thisOpacity = isConnected(d, o) ? node_opacity_val : opacity;
-	      	this.setAttribute('fill-opacity', thisOpacity);
-	      	return thisOpacity;
+        fnode.style("opacity", function(o) {
+	    	var thisOpacity = isConnected(d, o) ? node_opacity_val : opacity;
+            if (opacity < node_opacity_val && thisOpacity == node_opacity_val && d!= o) {
+                d3.select(this).select("text").transition()
+                    .duration(200)
+                    .style("visibility", "visible");
+            }
+            else if (opacity < node_opacity_val) {
+                d3.select(this).select("text").transition()
+                    .duration(200)
+                    .style("visibility", "hidden");
+            }
+            return thisOpacity;
 	  	});
-	
-	  	link.style("stroke-opacity", opacity).style("stroke-opacity", function(o) {
+
+	  	link.style("stroke-opacity", function(o) {
 	      	return o.source === d || o.target === d ? link_opacity_val : opacity < node_opacity_val ? opacity : link_opacity_val;
 	  	});
 		if(opacity < node_opacity_val) {
 			tooltip.transition()
 				.duration(200)      
 				.style("visibility", "visible");      
-		  	tooltip.html(d.name+": "+d.email)  
 		  	tooltip.html(d.name)
 		    	.style("left", (d3.event.pageX) + "px")     
 		    	.style("top", (d3.event.pageY - 28) + "px");
-		}
+
+ 		}
 		else {
 			tooltip.transition()        
 				.duration(500)      
 				.style("visibility", "hidden");
+            if (text_on)
+                attached_text.style("visibility", "visible");
+            else
+                attached_text.style("visibility", "hidden");
 		}
 	}
 }
 
 function fadeRelativeToLink(opacity) {
     return function(d) {
-        if (typeof(node) != "undefined")
-            node.style("stroke-opacity", function(o) {
-                thisOpacity = (o==d.source || o==d.target ? 1 : opacity);
-                this.setAttribute('fill-opacity', thisOpacity);
+        if (typeof(fnode) != "undefined")
+            fnode.style("opacity", function(o) {
+                thisOpacity = (o==d.source || o==d.target ? node_opacity_val : opacity);
+                if (thisOpacity == 1) {
+                    d3.select(this).select("text").transition()
+                        .duration(200)
+                        .style("visibility", "visible");
+                }
+                else if (opacity == node_opacity_val) {
+                    // mouse out
+                    d3.select(this).select("text").transition()
+                        .duration(200)
+                        .style("visibility", text_on ? "visible" : "hidden");
+                }
                 return thisOpacity;
             });
 
-        link.style("stroke-opacity", opacity).style("stroke-opacity", function(o) {
-            return o === d ? 1 : opacity;
+        link.style("opacity", function(o) {
+            if (o.source.index == d.source.index && o.target.index == d.target.index)
+                return link_opacity_val;
+            else
+                return opacity;
         });
     }
 }
@@ -140,7 +168,7 @@ function updateData() {
 	    .style("opacity", link_opacity_val)
 	    .style("stroke-width", function(d) { return 1 + Math.sqrt(d.count); })
 		.on("mouseover", fadeRelativeToLink(0.3))
-        .on("mouseout", fadeRelativeToLink(1))
+        .on("mouseout", fadeRelativeToLink(node_opacity_val))
 		.on("click", function(d) {
 			selEdgeSource = d.source;
 			selEdgeTarget = d.target;	
@@ -168,10 +196,20 @@ function updateData() {
 					.duration(500)
 					.style("stroke", "black");
 				htmltext = "<b>Slack Communication Channels</b>: " + d.channel + "<br>";
-                htmltext = "<b>Communication Type</b>: " + d.type + "<br>";
-                htmltext += "<b>Message initiator: </b>: " + d.source.name + "<br>";
-                htmltext += "<b>Message reactor: </b>: " + d.target.name + "<br>";
-				htmltext += "<b>Parent Message:</b> " + d.text + "<br>";
+
+                if (d.type == 'at') {
+                    htmltext = "<b>Communication Type</b>: @-mention<br>";
+                    htmltext += "<b>Message initiator: </b>: " + d.source.name + "<br>";
+                    htmltext += "<b>User being @-mentioned: </b>: " + d.target.name + "<br>";
+                    htmltext += "<b>Message:</b> " + d.text + "<br>";
+                }
+                else {
+                    htmltext = "<b>Communication Type</b>: " + d.type + "<br>";
+                    htmltext += "<b>Message initiator: </b>: " + d.source.name + "<br>";
+                    htmltext += "<b>Message reactor: </b>: " + d.target.name + "<br>";
+                    htmltext += "<b>Parent Message:</b> " + d.text + "<br>";
+                }
+
                 if (d.threaded_text)
                     htmltext += "<b>Threaded Messages:</b> " + d.threaded_text + "<br>";
                 if (d.reactions)
@@ -265,20 +303,21 @@ function updateData() {
     fnode.append("circle")
 		.attr("r",
             function(d) {
-                return radius + (d.weight*Math.sqrt(radius))- .75;
+                return 2+Math.sqrt(d.weight*radius)-0.75;
 		})
         .style("fill", function(d) { return d.color; })
 		.style("opacity", node_opacity_val)
 		.style("stroke", node_stroke_clr);
 
-	fnode.append("text")
-    	.attr("dx", function(d) { return radius + (d.weight*Math.sqrt(radius))- .75; })
+	attached_text = fnode.append("text")
+    	.attr("dx", function(d) { return 2+Math.sqrt(d.weight*radius)-0.75; })
     	.attr("dy", ".35em")
-    	.text(function(d) { return d.name; });
-	
+    	.text(function(d) { return d.name; })
+        .style("visibility", "hidden");
+    text_on = false;
     linkedByIndex = {};
     link.data().forEach(function(d) {
-        linkedByIndex[d.source + "," + d.target] = 1;
+        linkedByIndex[d.source.index + "," + d.target.index] = 1;
     });
 
 	force.on("tick", tick);
@@ -288,6 +327,16 @@ function ResetView() {
 	zoom.scale(1);
 	zoom.translate([0, 0]);
 	svg.attr("transform", "translate(" + zoom.translate() + ")scale(" + zoom.scale() + ")");
+}
+
+function ToggleTextDisplay(cb) {
+    text_on = cb.checked;
+    if (cb.checked) {
+        attached_text.style("visibility", "visible");
+    }
+    else {
+        attached_text.style("visibility", "hidden");
+    }
 }
 
 d3.json("inputData.json", function(json) {

@@ -1,5 +1,6 @@
 import os
 import json
+import cgi
 import unicodedata
 
 from slackclient import SlackClient
@@ -13,7 +14,7 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
             continue
 
         source = msg['user']
-        stxtstr = msg['text'] if 'text' in msg else ''
+        stxtstr = cgi.escape(msg['text']) if 'text' in msg else ''
 
         type = ''
 
@@ -25,14 +26,16 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
                     key_str = str(source) + '-' + str(target) + '-' + msg['ts'] + '-' + type
                     if key_str in link_msglst_dict:
                         link_msglst_dict[key_str]['count'] += 1
+                        if stxtstr and stxtstr not in link_msglst_dict[key_str]['text']:
+                            link_msglst_dict[key_str]['text'] += '<li>' + stxtstr + '</li>'
                         if ch_name not in link_msglst_dict[key_str]['channel']:
                             link_msglst_dict[key_str]['channel'] += ';' + ch_name
                         if link_msglst_dict[key_str]['reactions']:
-                            link_msglst_dict[key_str]['reactions'] += ':' + react['name']
+                            link_msglst_dict[key_str]['reactions'] += ';' + react['name']
                     else:
                         link_msglst_dict[key_str] = {'type': type,
                                                      'channel': ch_name,
-                                                     'text': stxtstr,
+                                                     'text': '<ul><li>' + stxtstr + '</li>',
                                                      'reactions': react['name'],
                                                      'count': 1}
 
@@ -52,35 +55,58 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
                         key_str = str(source) + '-' + str(target) + '-' + msg['ts'] + '-' + type
                         if key_str in link_msglst_dict:
                             link_msglst_dict[key_str]['count'] += 1
+                            if stxtstr and stxtstr not in link_msglst_dict[key_str]['text']:
+                                link_msglst_dict[key_str]['text'] += '<li>' + stxtstr + '</li>'
                             if ch_name not in link_msglst_dict[key_str]['channel']:
                                 link_msglst_dict[key_str]['channel'] += ';' + ch_name
                             if 'text' in rmsg:
-                                html_msg_str = '<li>' + rmsg['text'] + '</li>'
+                                html_msg_str = '<li>' + cgi.escape(rmsg['text']) + '</li>'
                                 link_msglst_dict[key_str]['threaded_text'] += html_msg_str
                         else:
-                            html_msg_str = '<ul><li>' + rmsg['text'] + '</li>' if 'text' in rmsg \
+                            html_msg_str = '<ul><li>' + cgi.escape(rmsg['text']) + '</li>' \
+                                if 'text' in rmsg \
                                 else ''
                             link_msglst_dict[key_str] = {'type': type,
                                                          'channel': ch_name,
-                                                         'text': stxtstr,
+                                                         'text': '<ul><li>' + stxtstr + '</li>',
                                                          'threaded_text': html_msg_str,
                                                          'count': 1}
 
         if not type:
+            type = 'at'
             txt = msg['text']
             idx2 = 0
             while '@' in txt:
                 idx1 = txt.find('@', idx2)
+                if idx1 == -1:
+                    break
                 idx2 = txt.find('|', idx1)
                 if idx2 == -1:
                     idx2 = txt.find('>', idx1)
-                if source != txt[idx1+1:idx2]:
-                    if txt[idx1+1:idx2] in uid_to_node:
-                        # can create message link here
-                        print uid_to_node[source]['name'] + '-' + uid_to_node[txt[idx1+1:idx2]]['name'] + '-' + txt
                 if idx2 == -1 or idx2 >= len(txt)-1:
                     # end of the text string, break the while loop
                     break
+                if source != txt[idx1+1:idx2]:
+                    if txt[idx1+1:idx2] in uid_to_node:
+                        # create message link here
+                        target = txt[idx1+1:idx2]
+                        key_str = str(source) + '-' + str(target) + '-' + msg['ts'] + '-' + type
+                        txt = txt.replace(target, uid_to_node[target]['name'])
+                        escape_txt = cgi.escape(txt)
+                        if key_str in link_msglst_dict:
+                            link_msglst_dict[key_str]['count'] += 1
+                            if ch_name not in link_msglst_dict[key_str]['channel']:
+                                link_msglst_dict[key_str]['channel'] += ';' + ch_name
+                            html_msg_str = '<li>' + escape_txt + '</li>'
+                            if html_msg_str not in link_msglst_dict[key_str]['text']:
+                                link_msglst_dict[key_str]['text'] += html_msg_str
+                        else:
+                            html_msg_str = '<ul><li>' + escape_txt + '</li>'
+                            link_msglst_dict[key_str] = {'type': type,
+                                                         'channel': ch_name,
+                                                         'text': html_msg_str,
+                                                         'count': 1}
+
 
 # append </ul> to all threaded_text key in link_msglist_dict
 def append_list_end_to_all_msgs():
@@ -88,6 +114,9 @@ def append_list_end_to_all_msgs():
         if 'threaded_text' in val_dict:
             if '<ul>' in val_dict['threaded_text'] and '</ul>' not in val_dict['threaded_text']:
                 val_dict['threaded_text'] += '</ul>'
+        if 'text' in val_dict:
+            if '<ul>' in val_dict['text'] and '</ul>' not in val_dict['text']:
+                val_dict['text'] += '</ul>'
 
 
 # fetch threaded message interactions from channels.history
@@ -126,7 +155,9 @@ def convert_unicode_to_ascii(ustr):
         ustr = ustr.replace(u'\u2019', '\'')
     if ustr.find('\n') >= 0:
         ustr = ustr.replace('\n', '...')
-
+    # replace double quotes with single quotes since double quotes are used in JSON file
+    if ustr.find('"') >= 0:
+        ustr = ustr.replace('"', "'")
     return ustr.encode('ascii', 'ignore')
 
 
