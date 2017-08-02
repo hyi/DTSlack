@@ -2,10 +2,6 @@ var width = 1000,
     height = 500,
     radius = 6;
 
-var tooltip = d3.select("body").append("div")   
-    .attr("class", "tooltip")               
-    .style("visibility", "hidden");
-
 var attached_text, text_on;
 
 var node_opacity_val = 0.8;
@@ -95,7 +91,7 @@ function fadeRelativeToNode(opacity) {
 	return function(d) {
         fnode.style("opacity", function(o) {
 	    	var thisOpacity = isConnected(d, o) ? node_opacity_val : opacity;
-            if (opacity < node_opacity_val && thisOpacity == node_opacity_val && d!= o) {
+            if (opacity < node_opacity_val && thisOpacity == node_opacity_val) {
                 d3.select(this).select("text").transition()
                     .duration(200)
                     .style("visibility", "visible");
@@ -109,22 +105,11 @@ function fadeRelativeToNode(opacity) {
 	  	});
 
 	  	link.style("stroke-opacity", function(o) {
-	      	return o.source === d || o.target === d ? link_opacity_val : opacity < node_opacity_val ? opacity : link_opacity_val;
+	      	return o.source === d || o.target === d ? link_opacity_val : (opacity < node_opacity_val ? opacity : link_opacity_val);
 	  	});
-		if(opacity < node_opacity_val) {
-			tooltip.transition()
-				.duration(200)      
-				.style("visibility", "visible");      
-		  	tooltip.html(d.name)
-		    	.style("left", (d3.event.pageX) + "px")     
-		    	.style("top", (d3.event.pageY - 28) + "px");
 
- 		}
-		else {
-			tooltip.transition()        
-				.duration(500)      
-				.style("visibility", "hidden");
-            if (text_on)
+		if(opacity == node_opacity_val) {
+		    if (text_on)
                 attached_text.style("visibility", "visible");
             else
                 attached_text.style("visibility", "hidden");
@@ -136,13 +121,13 @@ function fadeRelativeToLink(opacity) {
     return function(d) {
         if (typeof(fnode) != "undefined")
             fnode.style("opacity", function(o) {
-                thisOpacity = (o==d.source || o==d.target ? node_opacity_val : opacity);
-                if (thisOpacity == 1) {
+                thisOpacity = (o.index==d.source.index || o.index==d.target.index ? node_opacity_val : opacity);
+                if (opacity < link_opacity_val && thisOpacity == node_opacity_val) {
                     d3.select(this).select("text").transition()
                         .duration(200)
                         .style("visibility", "visible");
                 }
-                else if (opacity == node_opacity_val) {
+                else if (opacity == link_opacity_val) {
                     // mouse out
                     d3.select(this).select("text").transition()
                         .duration(200)
@@ -151,7 +136,7 @@ function fadeRelativeToLink(opacity) {
                 return thisOpacity;
             });
 
-        link.style("opacity", function(o) {
+        link.style("stroke-opacity", function(o) {
             if (o.source.index == d.source.index && o.target.index == d.target.index)
                 return link_opacity_val;
             else
@@ -165,10 +150,11 @@ function updateData() {
            .data(linkData);
 	link.enter().append("path")
 	    .attr("class", function(d) { return "link " + d.type; })
-	    .style("opacity", link_opacity_val)
-	    .style("stroke-width", function(d) { return 1 + Math.sqrt(d.count); })
-		.on("mouseover", fadeRelativeToLink(0.3))
-        .on("mouseout", fadeRelativeToLink(node_opacity_val))
+	    .style("stroke-opacity", link_opacity_val)
+	    //.style("stroke-width", function(d) { return 1 + Math.sqrt(d.count); })
+        .style("stroke-width", 1)
+		.on("mouseover", fadeRelativeToLink(0.1))
+        .on("mouseout", fadeRelativeToLink(link_opacity_val))
 		.on("click", function(d) {
 			selEdgeSource = d.source;
 			selEdgeTarget = d.target;	
@@ -283,7 +269,7 @@ function updateData() {
 		    }
 	    })       
 		.call(force.drag)
-		.on("mouseover", fadeRelativeToNode(0.3))
+		.on("mouseover", fadeRelativeToNode(0.1))
 		.on("mouseout", fadeRelativeToNode(node_opacity_val))
 		.call(node_drag);
 
