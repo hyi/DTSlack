@@ -54,7 +54,8 @@ function tick() {
     link.attr("d", function(d) {
         var dx = d.target.x - d.source.x,
             dy = d.target.y - d.source.y,
-            dr = Math.sqrt(dx*dx+dy*dy);
+            //dr = Math.sqrt(dx*dx+dy*dy);
+            dr = 150/d.linknum;
         return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
     })
 }
@@ -105,7 +106,7 @@ function fadeRelativeToNode(opacity) {
 	  	});
 
 	  	link.style("stroke-opacity", function(o) {
-	      	return o.source === d || o.target === d ? link_opacity_val : (opacity < node_opacity_val ? opacity : link_opacity_val);
+	      	return o.source.index == d.index || o.target.index == d.index ? link_opacity_val : (opacity < node_opacity_val ? opacity : link_opacity_val);
 	  	});
 
 		if(opacity == node_opacity_val) {
@@ -327,6 +328,37 @@ function ToggleTextDisplay(cb) {
 
 d3.json("inputData.json", function(json) {
 	nodeData = json.nodes;
-    linkData = json.links;	
+    linkData = json.links;
+    // sort linkData so that "linknum" can be computed for each link for arc computation
+    // for each pair of link connecting to the same source and target nodes
+    linkData.sort(function(a, b) {
+        if(a.source > b.source)
+            return 1;
+        else if (a.source < b.source)
+            return -1;
+        else {
+            if(a.target > b.target)
+                return 1;
+            else if (a.target < b.target)
+                return -1;
+            else
+                return 0;
+        }
+    });
+
+    // any links with duplicate source and target get an incremented 'linknum' for arc radius computation
+    if (linkData.length > 0) {
+        linkData[0].linknum = 1;
+        for (var i=1; i<linkData.length; i++) {
+            if ((linkData[i].source == linkData[i-1].source && linkData[i].target == linkData[i-1].target)
+                || (linkData[i].target == linkData[i-1].source && linkData[i].source == linkData[i-1].target)) {
+                linkData[i].linknum = linkData[i - 1].linknum + 1;
+                console.log("source=" + linkData[i].source + ", target=" + linkData[i].target + ", linknum=" + linkData[i].linknum);
+            }
+            else
+                linkData[i].linknum = 1;
+        }
+    }
+
 	updateData();
 });
