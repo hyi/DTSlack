@@ -3,6 +3,7 @@ var width = 1000,
     radius = 6;
 
 var attached_text, text_on;
+var commTypeChecked = new Array(true, true, true); // by default, all communication types are checked
 
 var node_opacity_val = 0.8;
 var link_opacity_val = 0.8;
@@ -147,39 +148,44 @@ function fadeRelativeToLink(opacity) {
 }
         
 function updateData() {
-	link = svg.selectAll("path.link")
-           .data(linkData);
-	link.enter().append("path")
-	    .attr("class", function(d) { return "link " + d.type; })
-	    .style("stroke-opacity", link_opacity_val)
+	force
+		.nodes(nodeData)
+	    .links(linkData)
+		.start(); // has to be call here to make weight property on node available
+
+    link = svg.selectAll("path.link")
+        .data(force.links())
+        .enter().append("path")
+        .attr("class", function(d) { return "link " + d.type; })
+		.style("stroke-opacity", link_opacity_val)
 	    //.style("stroke-width", function(d) { return 1 + Math.sqrt(d.count); })
         .style("stroke-width", 1)
-		.on("mouseover", fadeRelativeToLink(0.1))
+	    .on("mouseover", fadeRelativeToLink(0.1))
         .on("mouseout", fadeRelativeToLink(link_opacity_val))
 		.on("click", function(d) {
 			selEdgeSource = d.source;
-			selEdgeTarget = d.target;	
+			selEdgeTarget = d.target;
 			var sel_same_link = false;
-	        if (lastSelEdgeSource == selEdgeSource && lastSelEdgeTarget == selEdgeTarget)	        
+	        if (lastSelEdgeSource == selEdgeSource && lastSelEdgeTarget == selEdgeTarget)
 	        	sel_same_link = true;
-	        	
+
 			// clear out previously clicked/hgted other links if any
 			if(lastSelLink != null) {
 				lastSelLink.style("stroke", lastSelLinkClr);
 				lastSelEdgeSource = -1;
 				lastSelEdgeTarget = -1;
 			}
-			// clear out previously clicked/hgted node if any	
+			// clear out previously clicked/hgted node if any
 			if(lastSelNode != null) {
 	            lastSelNode.style("stroke", node_stroke_clr);
 	            lastSelNodeName = null;
 	            lastSelNode = null;
-	        }	
-			
-			if(!sel_same_link) {	
+	        }
+
+			if(!sel_same_link) {
 				lastSelLink = d3.select(this);
                 lastSelLinkClr = lastSelLink.style('stroke')
-				lastSelLink.transition() 
+				lastSelLink.transition()
 					.duration(500)
 					.style("stroke", "black");
 				htmltext = "<b>Slack Communication Channels</b>: " + d.channel + "<br>";
@@ -203,30 +209,56 @@ function updateData() {
                     htmltext += "<b>Reactions:</b> " + d.reactions + "<br>";
 				d3.select("#datainfo").html(htmltext);
 				lastSelEdgeSource = selEdgeSource;
-				lastSelEdgeTarget = selEdgeTarget; 	
+				lastSelEdgeTarget = selEdgeTarget;
 			}
 			else {// clear out the selection if the selected link is clicked again
-				d3.select(this).transition() 
+				d3.select(this).transition()
 					.duration(500)
 					.style("stroke", lastSelLinkClr);
 				lastSelLink = null;
                 lastSelLinkClr = null;
 				lastSelEdgeSource = -1;
 				lastSelEdgeTarget = -1;
-				d3.select("#datainfo").html(""); 	
+				d3.select("#datainfo").html("");
 			}
-			
+
 			// clear out previously clicked/hgted other nodes if any
 			if(lastSelNode != null) {
 				lastSelNode.style("stroke", node_stroke_clr);
 				lastSelNode = null;
 			}
 		});
-		
-	force
-		.nodes(nodeData)
-	    .links(linkData)
-		.start(); // has to be call here to make weight property on node available
+    /*
+    var filterLink = false;
+    for(var index=0; index < commTypeChecked.length; index++)
+        if (!commTypeChecked[index]) {
+            filterLink = true;
+            break;
+        }
+	if (filterLink) {
+        flink = glink.filter(function (d) {
+            if (commTypeChecked[0]) {// mention is checked
+                if (d.type == 'at') {
+                    return true;
+                }
+            }
+            else if (commTypeChecked[1]) {// thread is checked
+                if (d.type == 'thread') {
+                    return true;
+                }
+            }
+            else if (commTypeChecked[2]) {// reaction is checked
+                if (d.type == 'reaction') {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+    else {
+        flink = glink.filter(function (d) { return true; });
+    }
+    */
 
     var node_drag = d3.behavior.drag()
         .on("dragstart", dragstart)
@@ -310,6 +342,32 @@ function updateData() {
 	force.on("tick", tick);
 }
 
+function filterGraph(aType, aVisibility) {
+    link.style("visibility", function (o) {
+        var lOriVisibility = o.style("visibility");
+        return o.type == aType ? aVisibility : lOriVisibility;
+    });
+}
+
+// handle medium checkbox click events
+function handleClick_mention(cb) {
+	if(commTypeChecked[0] == cb.checked) return;
+	commTypeChecked[0] = cb.checked;
+	filterGraph("at", cb.checked ? "visible" : "hidden");
+}
+
+function handleClick_thread(cb) {
+	if(commTypeChecked[1] == cb.checked) return;
+	commTypeChecked[1] = cb.checked;
+	filterGraph("thread", cb.checked ? "visible" : "hidden");
+}
+
+function handleClick_reaction(cb) {
+	if(commTypeChecked[2] == cb.checked) return;
+	commTypeChecked[2] = cb.checked;
+	filterGraph("reaction", cb.checked ? "visible" : "hidden");
+}
+
 function ResetView() {
 	zoom.scale(1);
 	zoom.translate([0, 0]);
@@ -353,7 +411,7 @@ d3.json("inputData.json", function(json) {
             if ((linkData[i].source == linkData[i-1].source && linkData[i].target == linkData[i-1].target)
                 || (linkData[i].target == linkData[i-1].source && linkData[i].source == linkData[i-1].target)) {
                 linkData[i].linknum = linkData[i - 1].linknum + 1;
-                console.log("source=" + linkData[i].source + ", target=" + linkData[i].target + ", linknum=" + linkData[i].linknum);
+                // console.log("source=" + linkData[i].source + ", target=" + linkData[i].target + ", linknum=" + linkData[i].linknum);
             }
             else
                 linkData[i].linknum = 1;

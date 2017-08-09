@@ -18,6 +18,10 @@
       <div>
       	<button id="reset" onclick="ResetView()">Reset View</button>
         <span id="display_label"><input type="checkbox" onclick="ToggleTextDisplay(this)" value="text_on"><b>Display node label</b></span>
+        &nbsp;&nbsp;Filter by communication types:
+		<span id="mention"><input type="checkbox" onclick="handleClick_mention(this)" value="mention" checked><b>Mention</b></span>
+		<span id="thread"><input type="checkbox" onclick="handleClick_thread(this)" value="thread" checked><b>Thread</b></span>
+		<span id="reaction"><input type="checkbox" onclick="handleClick_reaction(this)" value="reaction" checked><b>Reaction</b></span>
 	  </div>
 	  <div id="container">	
 		  <div id="chart"></div>
