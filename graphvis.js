@@ -156,7 +156,8 @@ function updateData() {
     link = svg.selectAll("path.link")
         .data(force.links())
         .enter().append("path")
-        .attr("class", function(d) { return "link " + d.type; })
+
+    link.attr("class", function(d) { return "link " + d.type; })
 		.style("stroke-opacity", link_opacity_val)
 	    //.style("stroke-width", function(d) { return 1 + Math.sqrt(d.count); })
         .style("stroke-width", 1)
@@ -344,8 +345,8 @@ function updateData() {
 
 function filterGraph(aType, aVisibility) {
     link.style("visibility", function (o) {
-        var lOriVisibility = o.style("visibility");
-        return o.type == aType ? aVisibility : lOriVisibility;
+        var lOriVisibility = d3.select(this).style("visibility");
+        return (o.type == aType) ? aVisibility : lOriVisibility;
     });
 }
 
