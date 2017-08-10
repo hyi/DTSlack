@@ -294,6 +294,14 @@ function updateData() {
 	        
 	        if(!sel_same_node) {		        
 	            htmltext = "<b>" + d.name +"  </b>" + d.email + "<br><br>";
+                if (d.broadcast_msg_count)
+                    htmltext += "<b>Number of broadcast messages:</b> " + d.broadcast_msg_count + "<br>";
+                if (d.broadcast_messages)
+                    if (d.broadcast_msg_count > 5)
+                        htmltext += "<b>Top 5 broadcast messages:</b> " + d.broadcast_messages + "<br>";
+                    else
+                        htmltext += "<b>Broadcast messages:</b> " + d.broadcast_messages + "<br>";
+
 	            d3.select("#datainfo").html(htmltext); 
 		        lastSelNode = d3.select(this).select("circle");
 		        lastSelNodeName = d.name; 
@@ -312,7 +320,7 @@ function updateData() {
             max_weight = d.weight;
             max_weight_node = d;
         }
-        return d.weight > 0;
+        return d.broadcast_msg_count > 0 || d.weight > 0;
 	});
     if (max_weight_node != null) {
         max_weight_node.px = width/2;
@@ -323,7 +331,10 @@ function updateData() {
     fnode.append("circle")
 		.attr("r",
             function(d) {
-                return 2+Math.sqrt(d.weight*radius)-0.75;
+                if (d.weight > 0)
+                    return 2+Math.sqrt(d.weight*radius)-0.75;
+                else
+                    return 2+Math.sqrt(d.broadcast_msg_count*radius)-0.75;
 		})
         .style("fill", function(d) { return d.color; })
 		.style("opacity", node_opacity_val)

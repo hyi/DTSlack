@@ -73,8 +73,11 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
                                                          'count': 1}
 
         if not type:
-            type = 'at'
             txt = msg['text']
+            if '@' in txt:
+                type = 'at'
+            else:
+                type = 'broadcast'
             idx2 = 0
             while '@' in txt:
                 idx1 = txt.find('@', idx2)
@@ -107,6 +110,19 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
                                                          'text': html_msg_str,
                                                          'count': 1}
 
+            if type == 'broadcast':
+                # add broadcast msg to the corresponding user node
+                escape_txt = cgi.escape(txt)
+                if uid_to_node[source]['broadcast_messages']:
+                    html_msg_str = '<li>' + escape_txt + '</li>'
+                else:
+                    html_msg_str = '<ul><li>' + escape_txt + '</li>'
+
+                if html_msg_str not in uid_to_node[source]['broadcast_messages'] and \
+                                uid_to_node[source]['broadcast_msg_count'] < 5:
+                    uid_to_node[source]['broadcast_messages'] += html_msg_str
+
+                uid_to_node[source]['broadcast_msg_count'] += 1
 
 # append </ul> to all threaded_text key in link_msglist_dict
 def append_list_end_to_all_msgs():
@@ -117,6 +133,10 @@ def append_list_end_to_all_msgs():
         if 'text' in val_dict:
             if '<ul>' in val_dict['text'] and '</ul>' not in val_dict['text']:
                 val_dict['text'] += '</ul>'
+
+    for uid, val_dict in uid_to_node.iteritems():
+        if '<ul>' in val_dict['broadcast_messages'] and '</ul>' not in val_dict['broadcast_messages']:
+            val_dict['broadcast_messages'] += '</ul>'
 
 
 # fetch threaded message interactions from channels.history
@@ -185,6 +205,8 @@ if __name__ == "__main__":
             node_dict['name'] = simp_name_str
             node_dict['color'] = user['color']
             node_dict['email'] = email
+            node_dict['broadcast_messages'] = ''
+            node_dict['broadcast_msg_count'] = 0
             uid_to_node[user['id']] = node_dict
 
     getInteractionMessages(sc)
@@ -206,7 +228,14 @@ if __name__ == "__main__":
         jsonfile.write('            "id":"' + k + '",\n')
         jsonfile.write('            "name":"' + node_dict['name'] + '",\n')
         jsonfile.write('            "color":"' + node_dict['color'] + '",\n')
-        jsonfile.write('            "email":"' + node_dict['email'] + '"\n')
+        jsonfile.write('            "email":"' + node_dict['email'] + '",\n')
+        jsonfile.write('            "broadcast_msg_count":' + str(node_dict['broadcast_msg_count']) + ',\n')
+        msgstr = convert_unicode_to_ascii(node_dict['broadcast_messages'])
+        # i==85 results in some message string that breaks d3 json load
+        if i != 85:
+            jsonfile.write('            "broadcast_messages":"' + msgstr + '"\n')
+        else:
+            jsonfile.write('            "broadcast_messages":"' + '"\n')
         i += 1
 
     jsonfile.write('        }\n')
