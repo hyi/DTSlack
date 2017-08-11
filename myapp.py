@@ -1,3 +1,4 @@
+import re
 import os
 import json
 import cgi
@@ -171,14 +172,33 @@ def getInteractionMessages(sc):
         append_list_end_to_all_msgs()
 
 def convert_unicode_to_ascii(ustr):
+    if not ustr:
+        return ''
+
     if ustr.find(u'\u2019') >= 0:
         ustr = ustr.replace(u'\u2019', '\'')
+    if ustr.find(u'\u2026') >= 0:
+        ustr = ustr.replace(u'\u2026', '.')
     if ustr.find('\n') >= 0:
-        ustr = ustr.replace('\n', '...')
+        ustr = ustr.replace('\n', '. ')
     # replace double quotes with single quotes since double quotes are used in JSON file
     if ustr.find('"') >= 0:
         ustr = ustr.replace('"', "'")
-    return ustr.encode('ascii', 'ignore')
+    if ustr.find(u'\u201c') >= 0:
+        ustr = ustr.replace(u'\u201c', "'")
+    if ustr.find(u'\u201d') >= 0:
+        ustr = ustr.replace(u'\u201d', "'")
+    if ustr.find(u'\u2014') >= 0:
+        ustr = ustr.replace(u'\u2014', '-')
+    if ustr.find(u'\u2013') >= 0:
+        ustr = ustr.replace(u'\u2013', '-')
+    if ustr.find(u'\u2018') >= 0:
+        ustr = ustr.replace(u'\u2018', '_')
+    OnlyAscii = lambda s: re.match('^[\x00-\x7F]+$', s) != None
+    if not OnlyAscii(ustr):
+        ustr = ustr.encode('ascii')
+
+    return ustr
 
 
 if __name__ == "__main__":
@@ -231,7 +251,6 @@ if __name__ == "__main__":
         jsonfile.write('            "email":"' + node_dict['email'] + '",\n')
         jsonfile.write('            "broadcast_msg_count":' + str(node_dict['broadcast_msg_count']) + ',\n')
         msgstr = convert_unicode_to_ascii(node_dict['broadcast_messages'])
-        # i==85 results in some message string that breaks d3 json load
         if i != 85:
             jsonfile.write('            "broadcast_messages":"' + msgstr + '"\n')
         else:
