@@ -1,6 +1,4 @@
-var width = 1000,
-    height = 500,
-    radius = 6;
+var width = 1000, height = 500;
 
 var attached_text, text_on;
 var commTypeChecked = new Array(true, true, true); // by default, all communication types are checked
@@ -49,8 +47,9 @@ function zoom_redraw() {
 
 function tick() {
 	node.attr("transform", function(d) {
-		d.x = Math.max(radius, Math.min(width - radius, d.x));
-		d.y = Math.max(radius, Math.min(height - radius, d.y));
+        size = get_node_size(d.weight, d.broadcast_msg_count)
+		d.x = Math.max(size, Math.min(width - size, d.x));
+		d.y = Math.max(size, Math.min(height - size, d.y));
     	return "translate(" + d.x + "," + d.y + ")";
     });
 
@@ -155,10 +154,7 @@ function fadeRelativeToLink(opacity) {
 }
 
 function get_node_size(weight, msg_cnt) {
-    if (weight > 0)
-        return 2+Math.sqrt(weight*radius)-0.75;
-    else
-        return 2+Math.sqrt(msg_cnt*radius)-0.75;
+    return 2+Math.sqrt(weight + msg_cnt)-0.75;
 }
 
 function updateData() {
@@ -308,6 +304,9 @@ function updateData() {
 	        
 	        if(!sel_same_node) {		        
 	            htmltext = "<b>" + d.name +"  </b>" + d.email + "<br><br>";
+                if (d.weight > 0) {
+                    htmltext += "<b>Number of links:</b> " + d.weight + "<br>";
+                }
                 if (d.broadcast_msg_count > 0) {
                     htmltext += "<b>Number of broadcast messages:</b> " + d.broadcast_msg_count + "<br>";
                     if (d.broadcast_msg_count > 5)
