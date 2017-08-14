@@ -308,13 +308,13 @@ function updateData() {
 	        
 	        if(!sel_same_node) {		        
 	            htmltext = "<b>" + d.name +"  </b>" + d.email + "<br><br>";
-                if (d.broadcast_msg_count > 0)
+                if (d.broadcast_msg_count > 0) {
                     htmltext += "<b>Number of broadcast messages:</b> " + d.broadcast_msg_count + "<br>";
                     if (d.broadcast_msg_count > 5)
                         htmltext += "<b>Top 5 broadcast messages:</b> " + d.broadcast_messages + "<br>";
                     else
                         htmltext += "<b>Broadcast messages:</b> " + d.broadcast_messages + "<br>";
-
+                }
 	            d3.select("#datainfo").html(htmltext); 
 		        lastSelNode = d3.select(this).select("circle");
 		        lastSelNodeName = d.name; 

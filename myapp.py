@@ -171,7 +171,8 @@ def getInteractionMessages(sc):
             create_links_from_messages(sc, msgs, channel['id'], channel['name'])
             more = channel_hist_ret['has_more']
 
-        append_list_end_to_all_msgs()
+    append_list_end_to_all_msgs()
+
 
 def convert_unicode_to_ascii(ustr):
     if not ustr:
@@ -199,7 +200,8 @@ def convert_unicode_to_ascii(ustr):
     OnlyAscii = lambda s: re.match('^[\x00-\x7F]+$', s) != None
     if not OnlyAscii(ustr):
         ustr = ustr.encode('ascii')
-
+    if ustr.find(u'\u0009') >= 0:
+        ustr = ustr.replace(u'\u0009', ' ')
     return ustr
 
 
@@ -274,10 +276,11 @@ if __name__ == "__main__":
         jsonfile.write('            "email":"' + node_dict['email'] + '",\n')
         jsonfile.write('            "broadcast_msg_count":' + str(node_dict['broadcast_msg_count']) + ',\n')
         msgstr = convert_unicode_to_ascii(node_dict['broadcast_messages'])
-        if i != 85:
-            jsonfile.write('            "broadcast_messages":"' + msgstr + '"\n')
-        else:
-            jsonfile.write('            "broadcast_messages":"' + '"\n')
+        #if i != 85:
+        #    jsonfile.write('            "broadcast_messages":"' + msgstr + '"\n')
+        #else:
+        #    jsonfile.write('            "broadcast_messages":"' + '"\n')
+        jsonfile.write('            "broadcast_messages":"' + msgstr + '"\n')
         i += 1
 
     jsonfile.write('        }\n')
