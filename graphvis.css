@@ -4,6 +4,20 @@ circle {
   stroke-width: 1.5px;
 }
 
+span.filter {
+  background-color:#ffffff;
+  padding-top: 0.5em;
+  padding-right: 2em;
+  padding-left: 1em;
+  padding-bottom: 0.1em;
+  border-style: solid;
+  border-color: #729c50;
+  border-width:1px;
+  margin-bottom: 1em;
+  margin-right: 1em;
+  border-radius: 10px;
+}
+
 text {
   fill: #000;
   font: 10px sans-serif;
@@ -46,13 +60,6 @@ div.tooltip {
   border: solid 1px #aaa;
   border-radius: 8px;
   pointer-events: none;
-}
-
-div:empty::before {
-  color: grey;
-}
-div[data-placeholder]:not([data-placeholder=""]):empty::before {
-  content: attr(data-placeholder);
 }
 
 div[id='datainfo'] {

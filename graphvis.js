@@ -5,6 +5,12 @@ var width = 1000,
 var attached_text, text_on;
 var commTypeChecked = new Array(true, true, true); // by default, all communication types are checked
 
+var unitVals = new Array("green", "orange", "blue", "red", "grey", "purple", "yellow");
+var unitColors = new Array("#00ff00", "#ffa500", "#0000ff", "#ff0000", "#d3d3d3", "#800080", "#ffff00");
+var teamColors = d3.scale.ordinal()
+    .range(unitColors)
+    .domain(unitVals);
+
 var node_opacity_val = 0.8;
 var link_opacity_val = 0.8;
 var node, link, fnode, linkData, nodeData, force, max_weight = 0, max_weight_node = null;
@@ -56,7 +62,8 @@ function tick() {
         var dx = d.target.x - d.source.x,
             dy = d.target.y - d.source.y,
             //dr = Math.sqrt(dx*dx+dy*dy);
-            dr = 150/d.linknum;
+            // dr = 150/d.linknum;
+            dr = Math.sqrt(dx*dx+dy*dy) + Math.sqrt(d.linknum);
         return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
     })
 }
@@ -334,12 +341,12 @@ function updateData() {
         max_weight_node.fixed = true;
     }
 
-    fnode.append("circle")/
+    fnode.append("circle")
 		.attr("r",
             function(d) {
                 return get_node_size(d.weight, d.broadcast_msg_count);
 		})
-        .style("fill", function(d) { return d.color; })
+        .style("fill", function(d) { return teamColors(d.color); })
 		.style("opacity", node_opacity_val)
 		.style("stroke", node_stroke_clr);
 

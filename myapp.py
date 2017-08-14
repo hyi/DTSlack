@@ -1,12 +1,14 @@
 import re
 import os
 import json
+import csv
 import cgi
 import unicodedata
 
 from slackclient import SlackClient
 
 link_msglst_dict = {}
+name_color = {}
 
 
 def create_links_from_messages(sc, msgs, ch_id, ch_name):
@@ -202,6 +204,18 @@ def convert_unicode_to_ascii(ustr):
 
 
 if __name__ == "__main__":
+    # read team name to color mapping csv file
+    with open('DTTeamNameColorMapping.csv', 'r') as fp:
+        csv_data = csv.reader(fp)
+        for row in csv_data:
+            split_name_str = row[0].split()
+            if len(split_name_str) == 1:
+                name = split_name_str[0]
+            else:
+                name = split_name_str[0][0] + '. ' + split_name_str[-1]
+            clr = row[1]
+            name_color[name.lower()] = clr.lower()
+
     slack_test_token = os.environ["SLACK_BOT_TOKEN"]
     sc = SlackClient(slack_test_token)
 
@@ -218,10 +232,12 @@ if __name__ == "__main__":
         if user['real_name'] != 'slackbot' and user['real_name'] and email:
             node_dict = {}
             namestrs = user['real_name'].split(' ')
-            simp_name_str = ''
-            for idx in range(len(namestrs)-1):
-                simp_name_str += namestrs[idx][0] + '. '
-            simp_name_str += namestrs[-1]
+            if len(namestrs) == 1:
+                simp_name_str = namestrs[0]
+            else:
+                simp_name_str = namestrs[0][0] + '. ' + namestrs[-1]
+
+            node_dict['real_name'] = user['real_name']
             node_dict['name'] = simp_name_str
             node_dict['color'] = user['color']
             node_dict['email'] = email
@@ -239,7 +255,14 @@ if __name__ == "__main__":
     i = 0
     for k, node_dict in uid_to_node.iteritems():
         name = node_dict['name']
-        color = node_dict['color']
+        # color = node_dict['color']
+        key = name.lower()
+        if key in name_color:
+            color = name_color[name.lower()]
+        else:
+            color = 'yellow'
+            print node_dict['real_name']
+
         email = node_dict['email']
         uid_to_nidx[k] = i
         if i > 0:
@@ -247,7 +270,7 @@ if __name__ == "__main__":
         jsonfile.write('        {\n')
         jsonfile.write('            "id":"' + k + '",\n')
         jsonfile.write('            "name":"' + node_dict['name'] + '",\n')
-        jsonfile.write('            "color":"' + node_dict['color'] + '",\n')
+        jsonfile.write('            "color":"' + color + '",\n')
         jsonfile.write('            "email":"' + node_dict['email'] + '",\n')
         jsonfile.write('            "broadcast_msg_count":' + str(node_dict['broadcast_msg_count']) + ',\n')
         msgstr = convert_unicode_to_ascii(node_dict['broadcast_messages'])
