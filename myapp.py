@@ -4,21 +4,28 @@ import json
 import csv
 import cgi
 import unicodedata
+import numpy as np
 
 from slackclient import SlackClient
+from sklearn.feature_extraction.text import CountVectorizer
 
 link_msglst_dict = {}
 name_color = {}
 
 
-def create_links_from_messages(sc, msgs, ch_id, ch_name):
+def create_links_from_messages(sc, msgs, ch_id, ch_name, mtext):
+    msg_text = mtext
     for msg in msgs:
         if not 'user' in msg:
             continue
 
         source = msg['user']
         stxtstr = cgi.escape(msg['text']) if 'text' in msg else ''
-
+        if msg_text:
+            msg_text = msg_text + ' ' + msg['text']
+        else:
+            msg_text = msg['text']
+            
         type = ''
 
         if 'reactions' in msg:
@@ -55,6 +62,10 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
                 for rmsg in rmsgs:
                     target = rmsg['user']
                     if source != target:
+                        ttxtstr = cgi.escape(rmsg['text']) if 'text' in rmsg \
+                                else ''
+                        if ttxtstr:
+                            msg_text += ' ' + rmsg['text']
                         key_str = str(source) + '-' + str(target) + '-' + msg['ts'] + '-' + type
                         if key_str in link_msglst_dict:
                             link_msglst_dict[key_str]['count'] += 1
@@ -62,13 +73,11 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
                                 link_msglst_dict[key_str]['text'] += '<li>' + stxtstr + '</li>'
                             if ch_name not in link_msglst_dict[key_str]['channel']:
                                 link_msglst_dict[key_str]['channel'] += ';' + ch_name
-                            if 'text' in rmsg:
-                                html_msg_str = '<li>' + cgi.escape(rmsg['text']) + '</li>'
+                            if ttxtstr:
+                                html_msg_str = '<li>' + ttxtstr + '</li>'
                                 link_msglst_dict[key_str]['threaded_text'] += html_msg_str
                         else:
-                            html_msg_str = '<ul><li>' + cgi.escape(rmsg['text']) + '</li>' \
-                                if 'text' in rmsg \
-                                else ''
+                            html_msg_str = '<ul><li>' + ttxtstr + '</li>' if ttxtstr else ''
                             link_msglst_dict[key_str] = {'type': type,
                                                          'channel': ch_name,
                                                          'text': '<ul><li>' + stxtstr + '</li>',
@@ -126,7 +135,9 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
                     uid_to_node[source]['broadcast_messages'] += html_msg_str
 
                 uid_to_node[source]['broadcast_msg_count'] += 1
-
+    return msg_text
+    
+    
 # append </ul> to all threaded_text key in link_msglist_dict
 def append_list_end_to_all_msgs():
     for key, val_dict in link_msglst_dict.iteritems():
@@ -147,7 +158,7 @@ def getInteractionMessages(sc):
     channels_ret = sc.api_call("channels.list")
     if not channels_ret['ok']:
         print "cannot retrieve channels list, exiting..."
-
+    msg_text = ''    
     for channel in channels_ret['channels']:
         channel_hist_ret = sc.api_call("channels.history",
                                        channel=channel['id'],
@@ -156,8 +167,8 @@ def getInteractionMessages(sc):
             print "cannot retrieve channels history, exiting..."
         msgs = channel_hist_ret['messages']
         more = channel_hist_ret['has_more']
-
-        create_links_from_messages(sc, msgs, channel['id'], channel['name'])
+        
+        msg_text = create_links_from_messages(sc, msgs, channel['id'], channel['name'], msg_text)
 
         while more:
             last_ts = msgs[-1]['ts']
@@ -168,10 +179,11 @@ def getInteractionMessages(sc):
                 print "cannot retrieve channels history, exiting..."
 
             msgs = channel_hist_ret['messages']
-            create_links_from_messages(sc, msgs, channel['id'], channel['name'])
+            msg_text = create_links_from_messages(sc, msgs, channel['id'], channel['name'], msg_text)
             more = channel_hist_ret['has_more']
 
     append_list_end_to_all_msgs()
+    return msg_text
 
 
 def convert_unicode_to_ascii(ustr):
@@ -205,6 +217,31 @@ def convert_unicode_to_ascii(ustr):
     return ustr
 
 
+def generate_word_cloud(mtxt):
+    cv = CountVectorizer()
+    cv = CountVectorizer(min_df=0, decode_error="ignore",                                               
+                         stop_words="english", max_features=200)
+    counts = cv.fit_transform([mtxt]).toarray().ravel()                                                  
+    words = cv.get_feature_names() 
+    # normalize                                                                                                                                             
+    counts = counts / float(counts.max())
+    print "text = " + mtxt
+    print counts
+    print words
+    with open('wordCloud.json', 'w') as fp:
+        fp.write('{\n')
+        fp.write('    "words":[\n')
+        for i in range(len(words)):
+            if i > 0:
+                fp.write('        },\n')
+            fp.write('        {\n')
+            fp.write('            "text":"' + words[i] + '",\n')
+            fp.write('            "size":' + str(counts[i]) + '\n')
+        fp.write('        }\n')
+        fp.write('    ]\n')    
+        fp.write('}')                        
+
+    
 if __name__ == "__main__":
     # read team name to color mapping csv file
     with open('DTTeamNameColorMapping.csv', 'r') as fp:
@@ -247,7 +284,7 @@ if __name__ == "__main__":
             node_dict['broadcast_msg_count'] = 0
             uid_to_node[user['id']] = node_dict
 
-    getInteractionMessages(sc)
+    msg_text = getInteractionMessages(sc)
 
     jsonfile = open(r'inputData.json', 'w')
     jsonfile.write('{\n')
@@ -316,3 +353,6 @@ if __name__ == "__main__":
     jsonfile.write('        }\n')
     jsonfile.write('    ]\n')
     jsonfile.write('}')
+    
+    generate_word_cloud(msg_text)
+    
