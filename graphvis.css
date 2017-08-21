@@ -1,5 +1,5 @@
 circle {
-	fill: lightsteelblue;
+  fill: lightsteelblue;
   stroke: #fff;
   stroke-width: 1.5px;
 }
@@ -60,6 +60,13 @@ div.tooltip {
   border: solid 1px #aaa;
   border-radius: 8px;
   pointer-events: none;
+}
+
+div:empty::before {
+  color: grey;
+}
+div[data-placeholder]:not([data-placeholder=""]):empty::before {
+  content: attr(data-placeholder);
 }
 
 div[id='datainfo'] {

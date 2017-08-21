@@ -236,7 +236,6 @@ def generate_word_cloud():
         for i in range(len(words)):
             if words[i].isdigit() or words[i].upper() in uid_to_node:
                 # ignore all-number keywords or people ids
-                print words[i]
                 continue
                         
             if i > 0:
@@ -262,7 +261,7 @@ if __name__ == "__main__":
                 name = split_name_str[0]
             else:
                 name = split_name_str[0][0] + '. ' + split_name_str[-1]
-            clr = row[1]
+            clr = row[1].strip()
             name_color[name.lower()] = clr.lower()
 
     slack_test_token = os.environ["SLACK_BOT_TOKEN"]

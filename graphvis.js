@@ -36,8 +36,9 @@ var rect = svg.append("rect")
 
 force = d3.layout.force()
           .gravity(.1)
-          .charge(-200)
-          .linkDistance(100)
+          .charge(-300)
+          .linkDistance(140)
+          .linkStrength(0.1)
           .size([width, height]);
 
 function zoom_redraw() {
@@ -154,7 +155,7 @@ function fadeRelativeToLink(opacity) {
 }
 
 function get_node_size(weight, msg_cnt) {
-    return 2+Math.sqrt(weight + msg_cnt)-0.75;
+    return 4+Math.sqrt(weight + msg_cnt)-0.75;
 }
 
 function updateData() {
@@ -332,7 +333,7 @@ function updateData() {
             max_weight = d.weight;
             max_weight_node = d;
         }
-        return d.broadcast_msg_count > 0 || d.weight > 0;
+        return d.weight > 0;
 	});
     if (max_weight_node != null) {
         max_weight_node.px = width/2;
