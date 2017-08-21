@@ -205,11 +205,14 @@ def convert_unicode_to_ascii(ustr):
         ustr = ustr.replace(u'\u2013', '-')
     if ustr.find(u'\u2018') >= 0:
         ustr = ustr.replace(u'\u2018', '_')
+    if ustr.find(u'\xa0') >= 0:
+        ustr = ustr.replace(u'\xa0', ' ')
+    if ustr.find(u'\u0009') >= 0:
+        ustr = ustr.replace(u'\u0009', ' ')    
     OnlyAscii = lambda s: re.match('^[\x00-\x7F]+$', s) != None
     if not OnlyAscii(ustr):
         ustr = ustr.encode('ascii')
-    if ustr.find(u'\u0009') >= 0:
-        ustr = ustr.replace(u'\u0009', ' ')
+           
     return ustr
 
 
@@ -217,17 +220,23 @@ def generate_word_cloud():
     cv = CountVectorizer()
     cv = CountVectorizer(min_df=0, decode_error="ignore", 
                          stop_words="english", max_features=300)
-    counts = cv.fit_transform([' '.join(msg_txt_lst)]).toarray().ravel()                                                  
+    msg_txt_str = ' '.join(msg_txt_lst)
+    counts = cv.fit_transform([msg_txt_str]).toarray().ravel()                                                  
     words = cv.get_feature_names() 
     # normalize                                                                                                                                             
     counts = counts / float(counts.max())
-    print counts
+    
+    # output raw message text for external word extraction
+    #with open('raw_message_text.txt', 'w') as fp:
+    #    fp.write(convert_unicode_to_ascii(msg_txt_str))
+    
     with open('wordCloud.json', 'w') as fp:
         fp.write('{\n')
         fp.write('    "words":[\n')
         for i in range(len(words)):
             if words[i].isdigit() or words[i].upper() in uid_to_node:
                 # ignore all-number keywords or people ids
+                print words[i]
                 continue
                         
             if i > 0:
