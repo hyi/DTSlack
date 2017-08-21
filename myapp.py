@@ -9,22 +9,20 @@ import numpy as np
 from slackclient import SlackClient
 from sklearn.feature_extraction.text import CountVectorizer
 
+uid_to_node = {}
 link_msglst_dict = {}
-name_color = {}
+msg_txt_lst = []
 
 
-def create_links_from_messages(sc, msgs, ch_id, ch_name, mtext):
-    msg_text = mtext
+def create_links_from_messages(sc, msgs, ch_id, ch_name):
     for msg in msgs:
         if not 'user' in msg:
             continue
 
         source = msg['user']
         stxtstr = cgi.escape(msg['text']) if 'text' in msg else ''
-        if msg_text:
-            msg_text = msg_text + ' ' + msg['text']
-        else:
-            msg_text = msg['text']
+        if stxtstr:
+            msg_txt_lst.append(msg['text'])
             
         type = ''
 
@@ -65,7 +63,7 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name, mtext):
                         ttxtstr = cgi.escape(rmsg['text']) if 'text' in rmsg \
                                 else ''
                         if ttxtstr:
-                            msg_text += ' ' + rmsg['text']
+                            msg_txt_lst.append(rmsg['text'])
                         key_str = str(source) + '-' + str(target) + '-' + msg['ts'] + '-' + type
                         if key_str in link_msglst_dict:
                             link_msglst_dict[key_str]['count'] += 1
@@ -135,7 +133,6 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name, mtext):
                     uid_to_node[source]['broadcast_messages'] += html_msg_str
 
                 uid_to_node[source]['broadcast_msg_count'] += 1
-    return msg_text
     
     
 # append </ul> to all threaded_text key in link_msglist_dict
@@ -158,7 +155,7 @@ def getInteractionMessages(sc):
     channels_ret = sc.api_call("channels.list")
     if not channels_ret['ok']:
         print "cannot retrieve channels list, exiting..."
-    msg_text = ''    
+        
     for channel in channels_ret['channels']:
         channel_hist_ret = sc.api_call("channels.history",
                                        channel=channel['id'],
@@ -168,7 +165,7 @@ def getInteractionMessages(sc):
         msgs = channel_hist_ret['messages']
         more = channel_hist_ret['has_more']
         
-        msg_text = create_links_from_messages(sc, msgs, channel['id'], channel['name'], msg_text)
+        create_links_from_messages(sc, msgs, channel['id'], channel['name'])
 
         while more:
             last_ts = msgs[-1]['ts']
@@ -179,11 +176,10 @@ def getInteractionMessages(sc):
                 print "cannot retrieve channels history, exiting..."
 
             msgs = channel_hist_ret['messages']
-            msg_text = create_links_from_messages(sc, msgs, channel['id'], channel['name'], msg_text)
+            create_links_from_messages(sc, msgs, channel['id'], channel['name'])
             more = channel_hist_ret['has_more']
 
     append_list_end_to_all_msgs()
-    return msg_text
 
 
 def convert_unicode_to_ascii(ustr):
@@ -217,21 +213,23 @@ def convert_unicode_to_ascii(ustr):
     return ustr
 
 
-def generate_word_cloud(mtxt):
+def generate_word_cloud():
     cv = CountVectorizer()
-    cv = CountVectorizer(min_df=0, decode_error="ignore",                                               
-                         stop_words="english", max_features=200)
-    counts = cv.fit_transform([mtxt]).toarray().ravel()                                                  
+    cv = CountVectorizer(min_df=0, decode_error="ignore", 
+                         stop_words="english", max_features=300)
+    counts = cv.fit_transform([' '.join(msg_txt_lst)]).toarray().ravel()                                                  
     words = cv.get_feature_names() 
     # normalize                                                                                                                                             
     counts = counts / float(counts.max())
-    print "text = " + mtxt
     print counts
-    print words
     with open('wordCloud.json', 'w') as fp:
         fp.write('{\n')
         fp.write('    "words":[\n')
         for i in range(len(words)):
+            if words[i].isdigit() or words[i].upper() in uid_to_node:
+                # ignore all-number keywords or people ids
+                continue
+                        
             if i > 0:
                 fp.write('        },\n')
             fp.write('        {\n')
@@ -243,6 +241,9 @@ def generate_word_cloud(mtxt):
 
     
 if __name__ == "__main__":
+    
+    name_color = {}
+
     # read team name to color mapping csv file
     with open('DTTeamNameColorMapping.csv', 'r') as fp:
         csv_data = csv.reader(fp)
@@ -258,7 +259,6 @@ if __name__ == "__main__":
     slack_test_token = os.environ["SLACK_BOT_TOKEN"]
     sc = SlackClient(slack_test_token)
 
-    uid_to_node = {}
     uid_to_nidx = {}
 
     users_ret = sc.api_call("users.list")
@@ -284,7 +284,7 @@ if __name__ == "__main__":
             node_dict['broadcast_msg_count'] = 0
             uid_to_node[user['id']] = node_dict
 
-    msg_text = getInteractionMessages(sc)
+    getInteractionMessages(sc)
 
     jsonfile = open(r'inputData.json', 'w')
     jsonfile.write('{\n')
@@ -354,5 +354,5 @@ if __name__ == "__main__":
     jsonfile.write('    ]\n')
     jsonfile.write('}')
     
-    generate_word_cloud(msg_text)
+    generate_word_cloud()
     
