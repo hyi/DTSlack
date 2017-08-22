@@ -89,13 +89,5 @@ div[id='datainfo'] {
     margin-bottom: 1em;
     margin-right: 1em;
     border-radius: 10px;
-	float: right;
 }    
 
-div[id='chart'] {
-    float: left;
-}
-
-div[id='keyword_chart'] {
-	float: left;
-}
