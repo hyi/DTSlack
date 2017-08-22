@@ -7,6 +7,7 @@
   <head>
     <title>Visualization of team <i>slack</i> communications for NIH NCATS award project</title>
     <script type="application/javascript" charset="UTF-8" src="https://d3js.org/d3.v3.min.js"></script>
+	<script type="application/javascript" charset="UTF-8" src="d3.layout.cloud.js"></script>
     <link type="text/css" rel="stylesheet" href="graphvis.css"/>
   </head>
   <body>
@@ -22,16 +23,18 @@
       	<button id="reset" onclick="ResetView()">Reset View</button>
         <span id="display_label"><input type="checkbox" onclick="ToggleTextDisplay(this)" value="text_on"><b>Display node label</b></span>
         <span class="filter">Filter by communication types:
-		<span id="mention"><input type="checkbox" onclick="handleClick_mention(this)" value="mention" checked><b>Mention</b> (yellow)</span>
+		<span id="mention"><input type="checkbox" onclick="handleClick_mention(this)" value="mention" checked><b>Mention</b> (orange)</span>
 		<span id="thread"><input type="checkbox" onclick="handleClick_thread(this)" value="thread" checked><b>Thread</b> (green)</span>
 		<span id="reaction"><input type="checkbox" onclick="handleClick_reaction(this)" value="reaction" checked><b>Reaction</b> (blue)</span>
         <span>
 	  </div>
 	  <div id="container">	
 		  <div id="chart"></div>
+		  <div id="keyword_chart"></div>
 	      <div id="datainfo" data-placeholder="Display details on the selected node or link. You can click any node or link to select it. "></div>
       </div>
       <script type="application/javascript" charset="UTF-8" src="graphvis.js"></script>
+	  <script type="application/javascript" charset="UTF-8" src="cloudvis.js"></script>
 	</div>
   </body>
 </html>

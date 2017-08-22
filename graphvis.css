@@ -1,3 +1,11 @@
+body {
+  font-family: "Lucida Grande","Droid Sans",Arial,Helvetica,sans-serif;
+}
+
+.bld {
+	font-weight: bold;
+}
+
 circle {
   fill: lightsteelblue;
   stroke: #fff;
@@ -81,4 +89,13 @@ div[id='datainfo'] {
     margin-bottom: 1em;
     margin-right: 1em;
     border-radius: 10px;
+	float: left;
 }    
+
+div[id='chart'] {
+    float: left;
+}
+
+div[id='keyword_chart'] {
+	float: right;
+}

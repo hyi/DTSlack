@@ -8,6 +8,7 @@ import numpy as np
 
 from slackclient import SlackClient
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction import text
 
 uid_to_node = {}
 link_msglst_dict = {}
@@ -217,9 +218,13 @@ def convert_unicode_to_ascii(ustr):
 
 
 def generate_word_cloud():
+    uid_key_list = map(lambda x:x.lower(), uid_to_node.keys())
+    my_stop_words = uid_key_list + ['joined', 'channel', 'https', 'http', 
+                                    'com', 'www', 'does', 'url', 'edu', 'gt']
+    stop_words = text.ENGLISH_STOP_WORDS.union(my_stop_words)
     cv = CountVectorizer()
     cv = CountVectorizer(min_df=0, decode_error="ignore", 
-                         stop_words="english", max_features=300)
+                         stop_words=stop_words, max_features=300)
     msg_txt_str = ' '.join(msg_txt_lst)
     counts = cv.fit_transform([msg_txt_str]).toarray().ravel()                                                  
     words = cv.get_feature_names() 
@@ -233,16 +238,19 @@ def generate_word_cloud():
     with open('wordCloud.json', 'w') as fp:
         fp.write('{\n')
         fp.write('    "words":[\n')
+        is_first_word = True
         for i in range(len(words)):
-            if words[i].isdigit() or words[i].upper() in uid_to_node:
+            if words[i].isdigit():
                 # ignore all-number keywords or people ids
                 continue
                         
-            if i > 0:
+            if not is_first_word:
                 fp.write('        },\n')
             fp.write('        {\n')
             fp.write('            "text":"' + words[i] + '",\n')
             fp.write('            "size":' + str(counts[i]) + '\n')
+            is_first_word = False
+			
         fp.write('        }\n')
         fp.write('    ]\n')    
         fp.write('}')                        

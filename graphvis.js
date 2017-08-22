@@ -1,4 +1,4 @@
-var width = 1000, height = 500;
+var width = 600, height = 500;
 
 var attached_text, text_on;
 var commTypeChecked = new Array(true, true, true); // by default, all communication types are checked
