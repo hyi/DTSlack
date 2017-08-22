@@ -3,16 +3,48 @@ import os
 import json
 import csv
 import cgi
+import string
 import unicodedata
 import numpy as np
 
 from slackclient import SlackClient
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction import text
+from nltk.stem.porter import PorterStemmer
 
 uid_to_node = {}
 link_msglst_dict = {}
 msg_txt_lst = []
+
+unstem_mapping = {'ncat': 'ncats',
+                  'condit': 'condition',
+                  'creat': 'create',
+                  'diseas': 'disease',
+                  'exampl': 'example',
+                  'googl': 'google',
+                  'issu': 'issue',
+                  'johnshopkin': 'johnshopkins',
+                  'knowledg': 'knowledge',
+                  'observ': 'observe',
+                  'servic': 'service',
+                  'sourc': 'source',
+                  'synthet': 'synthetic',
+                  'tangerin': 'tangerine',
+                  'thank': 'thanks',
+                  'translat': 'translator',
+                  'updat': 'update',
+                  'ye': 'yes',
+                  'gener': 'generate',
+                  'identifi': 'identifier',
+                  'includ': 'include',
+                  'queri': 'query',
+                  'tri': 'try',
+                  'gener': 'generate'
+                  }
+
+            
+stemmer = PorterStemmer()
+tokenizer = CountVectorizer().build_tokenizer()
 
 
 def create_links_from_messages(sc, msgs, ch_id, ch_name):
@@ -215,19 +247,45 @@ def convert_unicode_to_ascii(ustr):
         ustr = ustr.encode('ascii')
            
     return ustr
+    
+
+def unstem(words):
+    for i in range(len(words)):
+        if words[i] in unstem_mapping:
+            words[i] = unstem_mapping[words[i]]
+    return words
 
 
+def stemmed_tokenizer(doc):
+    #for w in tokenizer(doc):
+    #    stem_w = stemmer.stem(w)
+    #    if stem_w == 'gener' or stem_w == 'identifi' or stem_w == 'includ' \
+    #        or stem_w == 'queri' or stem_w == 'tri':
+    #        print w
+    return (stemmer.stem(w) for w in tokenizer(doc) if not w in stop_words)
+
+ 
 def generate_word_cloud():
+    # put people ids into stop words
     uid_key_list = map(lambda x:x.lower(), uid_to_node.keys())
-    my_stop_words = uid_key_list + ['joined', 'channel', 'https', 'http', 
-                                    'com', 'www', 'does', 'url', 'edu', 'gt']
+    my_stop_words = uid_key_list + ['joined', 'channel', 'https', 'http', '10', 
+                                    'aeolus', 'anything', 'doc', 'docs', 'added',
+                                    'chweng', 'self', 'did', 'just', 'id', 'john', 
+                                    'nick', 'let', 'amp', 'blob', 'earls', 'gov', 
+                                    '493', 'com', 'www', 'does', 'url', 'edu', 
+                                    'richard1933', 'txt', 've', 'set', 'don',
+                                    'args', 
+                                    'hi', 'kendroe', 'krobasky', 'melissah', 'tyler', 
+                                    'pprint', 'nick', 'll', 'org', 'gt']
+    global stop_words
     stop_words = text.ENGLISH_STOP_WORDS.union(my_stop_words)
-    cv = CountVectorizer()
     cv = CountVectorizer(min_df=0, decode_error="ignore", 
-                         stop_words=stop_words, max_features=300)
+                         analyzer='word',
+                         tokenizer=stemmed_tokenizer,
+                         stop_words=stop_words, max_features=100)
     msg_txt_str = ' '.join(msg_txt_lst)
     counts = cv.fit_transform([msg_txt_str]).toarray().ravel()                                                  
-    words = cv.get_feature_names() 
+    words = unstem(cv.get_feature_names()) 
     # normalize                                                                                                                                             
     counts = counts / float(counts.max())
     
@@ -242,6 +300,7 @@ def generate_word_cloud():
         for i in range(len(words)):
             if words[i].isdigit():
                 # ignore all-number keywords or people ids
+                print words[i]
                 continue
                         
             if not is_first_word:

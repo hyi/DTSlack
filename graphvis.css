@@ -89,7 +89,7 @@ div[id='datainfo'] {
     margin-bottom: 1em;
     margin-right: 1em;
     border-radius: 10px;
-	float: left;
+	float: right;
 }    
 
 div[id='chart'] {
@@ -97,5 +97,5 @@ div[id='chart'] {
 }
 
 div[id='keyword_chart'] {
-	float: right;
+	float: left;
 }
