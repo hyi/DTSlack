@@ -375,7 +375,7 @@ if __name__ == "__main__":
             color = name_color[name.lower()]
         else:
             color = 'yellow'
-            print node_dict['real_name']
+            print node_dict['real_name'] + '---' + node_dict['email']
 
         email = node_dict['email']
         uid_to_nidx[k] = i
