@@ -1,10 +1,8 @@
 import re
 import os
-import json
 import csv
 import cgi
-import string
-import unicodedata
+import sys
 import numpy as np
 
 from slackclient import SlackClient
@@ -15,6 +13,9 @@ from nltk.stem.porter import PorterStemmer
 uid_to_node = {}
 link_msglst_dict = {}
 msg_txt_lst = []
+output_network_file_name = ''
+output_word_cloud_file_name = ''
+output_raw_msg_text_file_name = ''
 
 unstem_mapping = {'ncat': 'ncats',
                   'condit': 'condition',
@@ -290,10 +291,10 @@ def generate_word_cloud():
     counts = counts / float(counts.max())
     
     # output raw message text for external word extraction
-    #with open('raw_message_text.txt', 'w') as fp:
-    #    fp.write(convert_unicode_to_ascii(msg_txt_str))
+    with open(output_raw_msg_text_file_name, 'w') as fp:
+        fp.write(convert_unicode_to_ascii(msg_txt_str))
     
-    with open('wordCloud.json', 'w') as fp:
+    with open(output_word_cloud_file_name, 'w') as fp:
         fp.write('{\n')
         fp.write('    "words":[\n')
         is_first_word = True
@@ -317,8 +318,17 @@ def generate_word_cloud():
     
 if __name__ == "__main__":
     
+    # get the first argument as network data file name
+    if len(sys.argv) != 4:
+        print "You should type this command to run it: 'python myapp.py <output_network_file_name> <output_word_cloud_file_name> <output_raw_message_text_file_name>'"
+        sys.exit()
+        
+    output_network_file_name = sys.argv[1]
+    output_word_cloud_file_name = sys.argv[2]
+    output_raw_msg_text_file_name = sys.argv[3]
+    
     name_color = {}
-
+    
     # read team name to color mapping csv file
     with open('DTTeamNameColorMapping.csv', 'r') as fp:
         csv_data = csv.reader(fp)
@@ -361,7 +371,7 @@ if __name__ == "__main__":
 
     getInteractionMessages(sc)
 
-    jsonfile = open(r'inputData.json', 'w')
+    jsonfile = open(output_network_file_name, 'w')
     jsonfile.write('{\n')
     jsonfile.write('    "nodes":[\n')
 
