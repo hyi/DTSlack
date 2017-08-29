@@ -320,19 +320,20 @@ def generate_word_cloud():
 if __name__ == "__main__":
     
     # get the first argument as network data file name
-    if len(sys.argv) != 5:
-        print "You should type this command to run it: 'python myapp.py <output_dir> <output_network_file_name> <output_word_cloud_file_name> <output_raw_message_text_file_name>'"
+    if len(sys.argv) != 6:
+        print "You should run it by: 'python slack_app.py <current_or_input_dir> <output_dir> <output_network_file_name> <output_word_cloud_file_name> <output_raw_message_text_file_name>'"
         sys.exit()
         
-    output_dir = sys.argv[1]
-    output_network_file_name = sys.argv[2]
-    output_word_cloud_file_name = sys.argv[3]
-    output_raw_msg_text_file_name = sys.argv[4]
+    input_dir = sys.argv[1]
+    output_dir = sys.argv[2]
+    output_network_file_name = sys.argv[3]
+    output_word_cloud_file_name = sys.argv[4]
+    output_raw_msg_text_file_name = sys.argv[5]
     
     name_color = {}
     
     # read team name to color mapping csv file
-    with open('DTTeamNameColorMapping.csv', 'r') as fp:
+    with open(os.path.join(input_dir, 'DTTeamNameColorMapping.csv'), 'r') as fp:
         csv_data = csv.reader(fp)
         for row in csv_data:
             split_name_str = row[0].split()
@@ -351,6 +352,11 @@ if __name__ == "__main__":
     users_ret = sc.api_call("users.list")
     if not users_ret['ok']:
         print "cannot retrieve users list, exiting..."
+        sys.exit()
+   	
+    if 'members' not in users_ret:
+        print "members are not returned from users list, most likely slack API token is revoked and need to be regenerated"
+        sys.exit() 
 
     users = users_ret['members']
     for user in users:
