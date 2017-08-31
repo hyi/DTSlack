@@ -392,10 +392,8 @@ if __name__ == "__main__":
         if key in name_color:
             color = name_color[name.lower()]
         else:
-            # color = 'yellow'
+            color = 'yellow'
             print node_dict['real_name'] + '---' + node_dict['email']
-            # filter out yellow nodes from visualization
-            continue
 
         email = node_dict['email']
         uid_to_nidx[k] = i
@@ -422,14 +420,10 @@ if __name__ == "__main__":
     jsonfile.write('    "links":[\n')
     i = 0
     for key, msg_dict in link_msglst_dict.iteritems():
-        split_keys = key.split('-')
-        if split_keys[0] not in uid_to_nidx or split_keys[1] not in uid_to_nidx:
-            # skip those links that connect to a yellow node
-            continue
-        
         if i > 0:
             jsonfile.write('        },\n')
         jsonfile.write('        {\n')
+        split_keys = key.split('-')
         source = uid_to_nidx[split_keys[0]]
         target = uid_to_nidx[split_keys[1]]
         jsonfile.write('            "source": ' + str(source) + ',\n')
