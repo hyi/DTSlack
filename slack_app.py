@@ -361,7 +361,7 @@ if __name__ == "__main__":
     users = users_ret['members']
     for user in users:
         email = user['profile']['email'] if 'email' in user['profile'] else ''
-        if user['real_name'] != 'slackbot' and user['real_name'] and email:
+        if 'real_name' in user and user['real_name'] != 'slackbot' and user['real_name'] and email:
             node_dict = {}
             namestrs = user['real_name'].split(' ')
             if len(namestrs) == 1:
