@@ -19,15 +19,18 @@
 		<p>The <b>word cloud</b> on the right shows the <b>100</b> most frequently referenced words across all team communication messages on slack channels. The larger the words, the more frequently the words are referenced.  
       </header>
       <div>
-      	<button id="reset" onclick="ResetView()">Reset View</button>
-        <span id="display_label"><input type="checkbox" onclick="ToggleTextDisplay(this)" value="text_on"><b>Display node label</b></span>
-        <span class="filter">Filter by communication types:
+      	<button id="reset" onclick="ResetView()">Reset</button>
+        <span id="display_label"><input type="checkbox" onclick="ToggleTextDisplay(this)" value="text_on"><b>Node label</b></span>
+        <span class="filter">Filter by types:
 		<span id="mention"><input type="checkbox" onclick="handleClick_mention(this)" value="mention" checked><b>Mention</b> (orange)</span>
 		<span id="thread"><input type="checkbox" onclick="handleClick_thread(this)" value="thread" checked><b>Thread</b> (green)</span>
 		<span id="reaction"><input type="checkbox" onclick="handleClick_reaction(this)" value="reaction" checked><b>Reaction</b> (blue)</span>
-        <span>
+        </span>
+        <span class="slidecontainer">
+          <input type="range" min="1" max="100" value="100" class="slider" id="myRange" oninput="handleSliderInput(this)" data-toggle="tooltip", title="">
+        </span>
 	  </div>
-	  <div id="container">	
+	  <div>
 		  <span id="chart"></span>
 		  <span id="keyword_chart"></span>	      
 		  <div id="datainfo" data-placeholder="Display details on the selected node or link. You can click any node or link to select it. "></div>

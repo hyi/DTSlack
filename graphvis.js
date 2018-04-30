@@ -5,6 +5,9 @@ var commTypeChecked = new Array(true, true, true); // by default, all communicat
 
 var unitVals = new Array("green", "orange", "blue", "red", "grey", "purple", "yellow");
 var unitColors = new Array("#00ff00", "#ffa500", "#0000ff", "#ff0000", "#d3d3d3", "#800080", "#ffff00");
+var hist_data_ts = new Array("08-29-17", "09-15-17", "11-30-17", "12-25-17", "01-30-18", "02-28-18", "03-31-18", "04-28-18");
+var curr_ts_idx = hist_data_ts.length;
+
 var teamColors = d3.scale.ordinal()
     .range(unitColors)
     .domain(unitVals);
@@ -405,6 +408,18 @@ function ToggleTextDisplay(cb) {
         attached_text.style("visibility", "hidden");
     }
 }
+
+function handleSliderInput(slider) {
+
+    unit = 100/hist_data_ts.length;
+    mapped_idx = Math.ceil(slider.value/unit);
+    if (mapped_idx == curr_ts_idx)
+        return;
+    slider.title = hist_data_ts[mapped_idx-1];
+    curr_ts_idx = mapped_idx;
+    d3.select("#datainfo").html(hist_data_ts[curr_ts_idx-1]);
+}
+
 
 d3.json("inputData.json", function(json) {
 	nodeData = json.nodes;
