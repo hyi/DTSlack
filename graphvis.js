@@ -1,12 +1,16 @@
 var width = 780, height = 480;
 
-var attached_text, text_on;
+var attached_text;
 var commTypeChecked = new Array(true, true, true); // by default, all communication types are checked
+var label_on = false;
 
 var unitVals = new Array("green", "orange", "blue", "red", "grey", "purple", "yellow");
 var unitColors = new Array("#00ff00", "#ffa500", "#0000ff", "#ff0000", "#d3d3d3", "#800080", "#ffff00");
-var hist_data_ts = new Array("08-29-17", "09-15-17", "11-30-17", "12-25-17", "01-30-18", "02-28-18", "03-31-18", "04-28-18");
-var curr_ts_idx = hist_data_ts.length;
+// the first and last empty string entries are needed to do ceiling snapshot time for each slider range
+// the last empty string entry represents current latest data
+var hist_data_ts = new Array("", "08-29-17", "09-15-17", "11-30-17", "12-25-17", "01-30-18", "02-28-18", "03-31-18", "04-28-18", "");
+var curr_ts_idx = hist_data_ts.length-1;
+var unit = 100/(hist_data_ts.length-1);
 
 var teamColors = d3.scale.ordinal()
     .range(unitColors)
@@ -22,7 +26,8 @@ var node_fill_clr = d3.rgb(153, 186, 221);
 var link_sel_clr;
 var zoom = d3.behavior.zoom();
 
-d3.select("#datainfo").style.width=width+"px";	
+d3.select("#datainfo").style.width=width+"px";
+d3.select("#mySliderRange").style.step = String(unit);
 
 var svg = d3.select("#chart").append("svg")
         .attr("width", width)
@@ -121,7 +126,7 @@ function fadeRelativeToNode(opacity) {
 	  	});
 
 		if(opacity == node_opacity_val) {
-		    if (text_on)
+		    if (label_on)
                 attached_text.style("visibility", "visible");
             else
                 attached_text.style("visibility", "hidden");
@@ -133,7 +138,7 @@ function fadeRelativeToLink(opacity) {
     return function(d) {
         if (typeof(fnode) != "undefined")
             fnode.style("opacity", function(o) {
-                thisOpacity = (o.index==d.source.index || o.index==d.target.index ? node_opacity_val : opacity);
+                var thisOpacity = (o.index==d.source.index || o.index==d.target.index ? node_opacity_val : opacity);
                 if (opacity < link_opacity_val && thisOpacity == node_opacity_val) {
                     d3.select(this).select("text").transition()
                         .duration(200)
@@ -143,7 +148,7 @@ function fadeRelativeToLink(opacity) {
                     // mouse out
                     d3.select(this).select("text").transition()
                         .duration(200)
-                        .style("visibility", text_on ? "visible" : "hidden");
+                        .style("visibility", label_on ? "visible" : "hidden");
                 }
                 return thisOpacity;
             });
@@ -162,15 +167,17 @@ function get_node_size(weight, msg_cnt) {
 }
 
 function updateData() {
+    svg.selectAll('g').remove();
 	force
 		.nodes(nodeData)
 	    .links(linkData)
 		.start(); // has to be call here to make weight property on node available
 
     link = svg.selectAll("path.link")
-        .data(force.links())
-        .enter().append("path")
+        .data(force.links());
 
+    link.enter().append("path");
+    link.exit().remove();
     link.attr("class", function(d) { return "link " + d.type; })
 		.style("stroke-opacity", link_opacity_val)
 	    //.style("stroke-width", function(d) { return 1 + Math.sqrt(d.count); })
@@ -282,7 +289,8 @@ function updateData() {
         	    
 	node = svg.selectAll(".node")
 	    .data(force.nodes());
-	
+
+	node.exit().remove();
 	node.enter().append("g")
 	    .attr("class", "node")     
 	    .on("click", function(d) {
@@ -353,12 +361,11 @@ function updateData() {
 		.style("opacity", node_opacity_val)
 		.style("stroke", node_stroke_clr);
 
-	attached_text = fnode.append("text")
+    attached_text = fnode.append("text")
     	.attr("dx", function(d) { return get_node_size(d.weight, d.broadcast_msg_count) + 2; })
     	.attr("dy", ".35em")
     	.text(function(d) { return d.name; })
-        .style("visibility", "hidden");
-    text_on = false;
+        .style("visibility", label_on ? "visible" : "hidden");
     linkedByIndex = {};
     link.data().forEach(function(d) {
         linkedByIndex[d.source.index + "," + d.target.index] = 1;
@@ -400,7 +407,7 @@ function ResetView() {
 }
 
 function ToggleTextDisplay(cb) {
-    text_on = cb.checked;
+    label_on = cb.checked;
     if (cb.checked) {
         attached_text.style("visibility", "visible");
     }
@@ -409,51 +416,73 @@ function ToggleTextDisplay(cb) {
     }
 }
 
-function handleSliderInput(slider) {
-
-    unit = 100/hist_data_ts.length;
-    mapped_idx = Math.ceil(slider.value/unit);
-    if (mapped_idx == curr_ts_idx)
-        return;
-    slider.title = hist_data_ts[mapped_idx-1];
-    curr_ts_idx = mapped_idx;
-    d3.select("#datainfo").html(hist_data_ts[curr_ts_idx-1]);
-}
-
-
-d3.json("inputData.json", function(json) {
-	nodeData = json.nodes;
-    linkData = json.links;
-    // sort linkData so that "linknum" can be computed for each link for arc computation
-    // for each pair of link connecting to the same source and target nodes
-    linkData.sort(function(a, b) {
-        if(a.source > b.source)
-            return 1;
-        else if (a.source < b.source)
-            return -1;
-        else {
-            if(a.target > b.target)
+function load_data(graph_data_filename, cloud_data_filename) {
+    d3.json(graph_data_filename, function (json) {
+        nodeData = json.nodes;
+        linkData = json.links;
+        // sort linkData so that "linknum" can be computed for each link for arc computation
+        // for each pair of link connecting to the same source and target nodes
+        linkData.sort(function (a, b) {
+            if (a.source > b.source)
                 return 1;
-            else if (a.target < b.target)
+            else if (a.source < b.source)
                 return -1;
-            else
-                return 0;
+            else {
+                if (a.target > b.target)
+                    return 1;
+                else if (a.target < b.target)
+                    return -1;
+                else
+                    return 0;
+            }
+        });
+
+        // any links with duplicate source and target get an incremented 'linknum' for arc radius computation
+        if (linkData.length > 0) {
+            linkData[0].linknum = 1;
+            for (var i = 1; i < linkData.length; i++) {
+                if ((linkData[i].source == linkData[i - 1].source && linkData[i].target == linkData[i - 1].target)
+                    || (linkData[i].target == linkData[i - 1].source && linkData[i].source == linkData[i - 1].target)) {
+                    linkData[i].linknum = linkData[i - 1].linknum + 1;
+                    // console.log("source=" + linkData[i].source + ", target=" + linkData[i].target + ", linknum=" + linkData[i].linknum);
+                }
+                else
+                    linkData[i].linknum = 1;
+            }
         }
+
+        updateData();
     });
 
-    // any links with duplicate source and target get an incremented 'linknum' for arc radius computation
-    if (linkData.length > 0) {
-        linkData[0].linknum = 1;
-        for (var i=1; i<linkData.length; i++) {
-            if ((linkData[i].source == linkData[i-1].source && linkData[i].target == linkData[i-1].target)
-                || (linkData[i].target == linkData[i-1].source && linkData[i].source == linkData[i-1].target)) {
-                linkData[i].linknum = linkData[i - 1].linknum + 1;
-                // console.log("source=" + linkData[i].source + ", target=" + linkData[i].target + ", linknum=" + linkData[i].linknum);
-            }
-            else
-                linkData[i].linknum = 1;
-        }
+    load_cloud_data(cloud_data_filename);
+}
+
+load_data('inputData.json', 'wordCloud.json');
+
+function handleSliderInput(slider) {
+
+    var mapped_idx = Math.ceil(slider.value/unit);
+    var prefix_str = "Team slack communication data up to ";
+    var filename = '';
+    var cloud_filename = '';
+
+    if (mapped_idx < hist_data_ts.length-1) {
+        tooltip_text = prefix_str + hist_data_ts[mapped_idx];
+        filename = "inputData-" + hist_data_ts[mapped_idx] + ".json";
+        cloud_filename = "wordCloud-" + hist_data_ts[mapped_idx] + ".json";
+    }
+    else {
+        tooltip_text = prefix_str + 'the previous night';
+        filename = "inputData.json";
+        cloud_filename = "wordCloud.json";
     }
 
-	updateData();
-});
+
+    slider.title = tooltip_text;
+    d3.select("#datainfo").html(tooltip_text);
+    if (mapped_idx != curr_ts_idx) {
+        load_data(filename, cloud_filename);
+        curr_ts_idx = mapped_idx;
+    }
+}
+

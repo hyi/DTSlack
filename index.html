@@ -27,16 +27,16 @@
 		<span id="reaction"><input type="checkbox" onclick="handleClick_reaction(this)" value="reaction" checked><b>Reaction</b> (blue)</span>
         </span>
         <span class="slidecontainer">
-          <input type="range" min="1" max="100" value="100" class="slider" id="myRange" oninput="handleSliderInput(this)" data-toggle="tooltip", title="">
+          <input type="range" min="1" max="100" value="100" class="slider" id="mySliderRange" oninput="handleSliderInput(this)" data-toggle="tooltip", title="Slack team communication data up to the previous night. Drag slider bar to look at historical data.">
         </span>
 	  </div>
 	  <div>
 		  <span id="chart"></span>
 		  <span id="keyword_chart"></span>	      
-		  <div id="datainfo" data-placeholder="Display details on the selected node or link. You can click any node or link to select it. "></div>
+		  <div id="datainfo" data-placeholder="Display details on the selected node or link. You can click any node or link to select it. Team slack communication data is up to the previous night. Use the slider bar on the top to look at historical data."></div>
 	  </div>
+      <script type="application/javascript" charset="UTF-8" src="cloudvis.js"></script>
       <script type="application/javascript" charset="UTF-8" src="graphvis.js"></script>
-	  <script type="application/javascript" charset="UTF-8" src="cloudvis.js"></script>
 	</div>
   </body>
 </html>

@@ -5,7 +5,7 @@ var color = d3.scale.linear()
     .range(["#fff", "#111"]);
 
 //var fill = d3.scale.category20();
-var width = 600, height = 480;
+var width = 780, height = 480;
 	
 var frequency_list;
 
@@ -13,26 +13,32 @@ function scale_size(s) {
 	return 5 + s*60;
 }
 
-d3.json("wordCloud.json", function(data) {
-	frequency_list = data.words;
-	d3.layout.cloud().size([width, height])
-	.words(frequency_list)
-	.padding(5)
-	.rotate(0)
-	.fontSize(function(d) { return scale_size(d.size); })
-	.on("end", draw)
-	.start();
-});
+var c_svg = d3.select("#keyword_chart").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("class", "wordcloud");
+
+function load_cloud_data(filename) {
+    c_svg.selectAll('g').remove();
+    d3.json(filename, function (data) {
+        frequency_list = data.words;
+        d3.layout.cloud().size([width, height])
+            .words(frequency_list)
+            .padding(5)
+            .rotate(0)
+            .fontSize(function (d) {
+                return scale_size(d.size);
+            })
+            .on("end", draw)
+            .start();
+    });
+}
 	
 function draw(words) {
-	d3.select("#keyword_chart").append("svg")
-		.attr("width", width)
-		.attr("height", height)
-		.attr("class", "wordcloud")
-		.append("g")
-		// without the transform, words would get cutoff to the left and top, they would
-		// appear outside of the SVG area
-		.attr("transform", "translate(" + width/2 + "," + height/2 + ")")
+    // without the transform, words would get cutoff to the left and top, they would
+    // appear outside of the SVG area
+	c_svg.append("g")
+        .attr("transform", "translate(" + width/2 + "," + height/2 + ")")
 		.selectAll("text")
 		.data(frequency_list)
 		.enter().append("text")
