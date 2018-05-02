@@ -468,8 +468,8 @@ function handleSliderInput(slider) {
 
     if (mapped_idx < hist_data_ts.length-1) {
         tooltip_text = prefix_str + hist_data_ts[mapped_idx];
-        filename = "inputData-" + hist_data_ts[mapped_idx] + ".json";
-        cloud_filename = "wordCloud-" + hist_data_ts[mapped_idx] + ".json";
+        filename = "history_data/inputData-" + hist_data_ts[mapped_idx] + ".json";
+        cloud_filename = "history_data/wordCloud-" + hist_data_ts[mapped_idx] + ".json";
     }
     else {
         tooltip_text = prefix_str + 'the previous night';
