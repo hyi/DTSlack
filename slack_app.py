@@ -3,7 +3,6 @@ import os
 import csv
 import cgi
 import sys
-import numpy as np
 
 from slackclient import SlackClient
 from sklearn.feature_extraction.text import CountVectorizer
@@ -55,7 +54,7 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
             continue
 
         source = msg['user']
-        stxtstr = cgi.escape(msg['text']) if 'text' in msg else ''
+        stxtstr = cgi.html.escape(msg['text']) if 'text' in msg else ''
         if stxtstr:
             msg_txt_lst.append(msg['text'])
             
@@ -89,7 +88,7 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
                                                 channel=ch_id,
                                                 thread_ts=msg['thread_ts'])
                 if not channel_reply_ret['ok']:
-                    print "cannot retrieve channel replies for parent " + msg['thread_ts'] + ", exiting..."
+                    print("cannot retrieve channel replies for parent " + msg['thread_ts'] + ", exiting...")
 
                 rmsgs = channel_reply_ret['messages']
                 for rmsg in rmsgs:
@@ -155,24 +154,28 @@ def create_links_from_messages(sc, msgs, ch_id, ch_name):
                                                          'text': html_msg_str,
                                                          'count': 1}
 
-            if type == 'broadcast':
+            if type == 'broadcast' and txt:
                 # add broadcast msg to the corresponding user node
                 escape_txt = cgi.escape(txt)
-                if uid_to_node[source]['broadcast_messages']:
-                    html_msg_str = '<li>' + escape_txt + '</li>'
-                else:
-                    html_msg_str = '<ul><li>' + escape_txt + '</li>'
+                try:
+                    if uid_to_node[source]['broadcast_messages']:
+                        html_msg_str = '<li>' + escape_txt + '</li>'
+                    else:
+                        html_msg_str = '<ul><li>' + escape_txt + '</li>'
 
-                if html_msg_str not in uid_to_node[source]['broadcast_messages'] and \
-                                uid_to_node[source]['broadcast_msg_count'] < 5:
-                    uid_to_node[source]['broadcast_messages'] += html_msg_str
+                    if html_msg_str not in uid_to_node[source]['broadcast_messages'] and \
+                                    uid_to_node[source]['broadcast_msg_count'] < 5:
+                        uid_to_node[source]['broadcast_messages'] += html_msg_str
 
-                uid_to_node[source]['broadcast_msg_count'] += 1
+                    uid_to_node[source]['broadcast_msg_count'] += 1
+                except KeyError as ex:
+                    print(ex.message)
+                    continue
     
     
 # append </ul> to all threaded_text key in link_msglist_dict
 def append_list_end_to_all_msgs():
-    for key, val_dict in link_msglst_dict.iteritems():
+    for key, val_dict in link_msglst_dict.items():
         if 'threaded_text' in val_dict:
             if '<ul>' in val_dict['threaded_text'] and '</ul>' not in val_dict['threaded_text']:
                 val_dict['threaded_text'] += '</ul>'
@@ -180,7 +183,7 @@ def append_list_end_to_all_msgs():
             if '<ul>' in val_dict['text'] and '</ul>' not in val_dict['text']:
                 val_dict['text'] += '</ul>'
 
-    for uid, val_dict in uid_to_node.iteritems():
+    for uid, val_dict in uid_to_node.items():
         if '<ul>' in val_dict['broadcast_messages'] and '</ul>' not in val_dict['broadcast_messages']:
             val_dict['broadcast_messages'] += '</ul>'
 
@@ -189,14 +192,14 @@ def append_list_end_to_all_msgs():
 def getInteractionMessages(sc):
     channels_ret = sc.api_call("channels.list")
     if not channels_ret['ok']:
-        print "cannot retrieve channels list, exiting..."
+        print("cannot retrieve channels list, exiting...")
         
     for channel in channels_ret['channels']:
         channel_hist_ret = sc.api_call("channels.history",
                                        channel=channel['id'],
                                        inclusive=True)
         if not channel_hist_ret['ok']:
-            print "cannot retrieve channels history, exiting..."
+            print("cannot retrieve channels history, exiting...")
         msgs = channel_hist_ret['messages']
         more = channel_hist_ret['has_more']
         
@@ -208,7 +211,7 @@ def getInteractionMessages(sc):
                                            channel=channel['id'],
                                            latest=last_ts)
             if not channel_hist_ret['ok']:
-                print "cannot retrieve channels history, exiting..."
+                print("cannot retrieve channels history, exiting...")
 
             msgs = channel_hist_ret['messages']
             create_links_from_messages(sc, msgs, channel['id'], channel['name'])
@@ -216,40 +219,6 @@ def getInteractionMessages(sc):
 
     append_list_end_to_all_msgs()
 
-
-def convert_unicode_to_ascii(ustr):
-    if not ustr:
-        return ''
-
-    if ustr.find(u'\u2019') >= 0:
-        ustr = ustr.replace(u'\u2019', '\'')
-    if ustr.find(u'\u2026') >= 0:
-        ustr = ustr.replace(u'\u2026', '.')
-    if ustr.find('\n') >= 0:
-        ustr = ustr.replace('\n', '. ')
-    # replace double quotes with single quotes since double quotes are used in JSON file
-    if ustr.find('"') >= 0:
-        ustr = ustr.replace('"', "'")
-    if ustr.find(u'\u201c') >= 0:
-        ustr = ustr.replace(u'\u201c', "'")
-    if ustr.find(u'\u201d') >= 0:
-        ustr = ustr.replace(u'\u201d', "'")
-    if ustr.find(u'\u2014') >= 0:
-        ustr = ustr.replace(u'\u2014', '-')
-    if ustr.find(u'\u2013') >= 0:
-        ustr = ustr.replace(u'\u2013', '-')
-    if ustr.find(u'\u2018') >= 0:
-        ustr = ustr.replace(u'\u2018', '_')
-    if ustr.find(u'\xa0') >= 0:
-        ustr = ustr.replace(u'\xa0', ' ')
-    if ustr.find(u'\u0009') >= 0:
-        ustr = ustr.replace(u'\u0009', ' ')    
-    OnlyAscii = lambda s: re.match('^[\x00-\x7F]+$', s) != None
-    if not OnlyAscii(ustr):
-        ustr = ustr.encode('ascii')
-           
-    return ustr
-    
 
 def unstem(words):
     for i in range(len(words)):
@@ -269,7 +238,7 @@ def stemmed_tokenizer(doc):
  
 def generate_word_cloud():
     # put people ids into stop words
-    uid_key_list = map(lambda x:x.lower(), uid_to_node.keys())
+    uid_key_list = list(map(lambda x:x.lower(), uid_to_node.keys()))
     my_stop_words = uid_key_list + ['joined', 'channel', 'https', 'http', '10', 
                                     'aeolus', 'anything', 'doc', 'docs', 'added',
                                     'chweng', 'self', 'did', 'just', 'id', 'john', 
@@ -292,8 +261,9 @@ def generate_word_cloud():
     counts = counts / float(counts.max())
     
     # output raw message text for external word extraction
-    with open(os.path.join(output_dir, output_raw_msg_text_file_name), 'w') as fp:
-        fp.write(convert_unicode_to_ascii(msg_txt_str))
+    with open(os.path.join(output_dir, output_raw_msg_text_file_name), mode='w', encoding='utf8') \
+            as fp:
+        fp.write(msg_txt_str)
     
     with open(os.path.join(output_dir, output_word_cloud_file_name), 'w') as fp:
         fp.write('{\n')
@@ -302,7 +272,7 @@ def generate_word_cloud():
         for i in range(len(words)):
             if words[i].isdigit():
                 # ignore all-number keywords or people ids
-                print words[i]
+                print(words[i])
                 continue
                         
             if not is_first_word:
@@ -321,7 +291,9 @@ if __name__ == "__main__":
     
     # get the first argument as network data file name
     if len(sys.argv) != 6:
-        print "You should run it by: 'python slack_app.py <current_or_input_dir> <output_dir> <output_network_file_name> <output_word_cloud_file_name> <output_raw_message_text_file_name>'"
+        print("You should run it by: 'python slack_app.py <current_or_input_dir> <output_dir> "
+              "<output_network_file_name> <output_word_cloud_file_name> "
+              "<output_raw_message_text_file_name>'")
         sys.exit()
         
     input_dir = sys.argv[1]
@@ -351,11 +323,11 @@ if __name__ == "__main__":
 
     users_ret = sc.api_call("users.list")
     if not users_ret['ok']:
-        print "cannot retrieve users list, exiting..."
+        print("cannot retrieve users list, exiting...")
         sys.exit()
    	
     if 'members' not in users_ret:
-        print "members are not returned from users list, most likely slack API token is revoked and need to be regenerated"
+        print("members are not returned from users list, most likely slack API token is revoked and need to be regenerated")
         sys.exit() 
 
     users = users_ret['members']
@@ -379,13 +351,13 @@ if __name__ == "__main__":
 
     getInteractionMessages(sc)
 
-    jsonfile = open(os.path.join(output_dir, output_network_file_name), 'w')
+    jsonfile = open(os.path.join(output_dir, output_network_file_name), mode='w', encoding='utf8')
     jsonfile.write('{\n')
     jsonfile.write('    "nodes":[\n')
 
     # write nodes
     i = 0
-    for k, node_dict in uid_to_node.iteritems():
+    for k, node_dict in uid_to_node.items():
         name = node_dict['name']
         # color = node_dict['color']
         key = name.lower()
@@ -393,7 +365,7 @@ if __name__ == "__main__":
             color = name_color[name.lower()]
         else:
             # color = 'yellow'
-            print node_dict['real_name'] + '---' + node_dict['email']
+            print(node_dict['real_name'] + '---' + node_dict['email'])
             # filter out yellow nodes from visualization
             continue
 
@@ -407,11 +379,7 @@ if __name__ == "__main__":
         jsonfile.write('            "color":"' + color + '",\n')
         jsonfile.write('            "email":"' + node_dict['email'] + '",\n')
         jsonfile.write('            "broadcast_msg_count":' + str(node_dict['broadcast_msg_count']) + ',\n')
-        msgstr = convert_unicode_to_ascii(node_dict['broadcast_messages'])
-        #if i != 85:
-        #    jsonfile.write('            "broadcast_messages":"' + msgstr + '"\n')
-        #else:
-        #    jsonfile.write('            "broadcast_messages":"' + '"\n')
+        msgstr = node_dict['broadcast_messages']
         jsonfile.write('            "broadcast_messages":"' + msgstr + '"\n')
         i += 1
 
@@ -421,7 +389,7 @@ if __name__ == "__main__":
     # write links
     jsonfile.write('    "links":[\n')
     i = 0
-    for key, msg_dict in link_msglst_dict.iteritems():
+    for key, msg_dict in link_msglst_dict.items():
         split_keys = key.split('-')
         if split_keys[0] not in uid_to_nidx or split_keys[1] not in uid_to_nidx:
             # skip those links that connect to a yellow node
@@ -437,13 +405,13 @@ if __name__ == "__main__":
         jsonfile.write('            "type":"' + msg_dict['type'] + '",\n')
         jsonfile.write('            "channel":"' + msg_dict['channel'] + '",\n')
         # convert unicode message str to ascii in order for js d3 to handle message display correctly
-        thtxtstr = convert_unicode_to_ascii(msg_dict['text'])
+        thtxtstr = msg_dict['text']
         jsonfile.write('            "text":"' + thtxtstr + '",\n')
         if 'threaded_text' in msg_dict:
-            thtxtstr = convert_unicode_to_ascii(msg_dict['threaded_text'])
+            thtxtstr = msg_dict['threaded_text']
             jsonfile.write('            "threaded_text":"' + thtxtstr + '",\n')
         if 'reactions' in msg_dict:
-            thtxtstr = convert_unicode_to_ascii(msg_dict['reactions'])
+            thtxtstr = msg_dict['reactions']
             jsonfile.write('            "reactions":"' + thtxtstr + '",\n')
 
         jsonfile.write('            "count":' + str(msg_dict['count']) + '\n')
