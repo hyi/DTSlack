@@ -3,6 +3,7 @@ import os
 import csv
 import cgi
 import sys
+from unidecode import unidecode
 
 from slackclient import SlackClient
 from sklearn.feature_extraction.text import CountVectorizer
@@ -46,6 +47,41 @@ unstem_mapping = {'ncat': 'ncats',
             
 stemmer = PorterStemmer()
 tokenizer = CountVectorizer().build_tokenizer()
+
+
+def process_str(ustr):
+    if not ustr:
+        return ''
+    if ustr.find(u'\u2019') >= 0:
+        ustr = ustr.replace(u'\u2019', '\'')
+    if ustr.find(u'\u2026') >= 0:
+        ustr = ustr.replace(u'\u2026', '.')
+    if ustr.find(u'\u201c') >= 0:
+        ustr = ustr.replace(u'\u201c', "'")
+    if ustr.find(u'\u201d') >= 0:
+        ustr = ustr.replace(u'\u201d', "'")
+    if ustr.find(u'\u2014') >= 0:
+        ustr = ustr.replace(u'\u2014', '-')
+    if ustr.find(u'\u2013') >= 0:
+        ustr = ustr.replace(u'\u2013', '-')
+    if ustr.find(u'\u2018') >= 0:
+        ustr = ustr.replace(u'\u2018', '_')
+    if ustr.find(u'\xa0') >= 0:
+        ustr = ustr.replace(u'\xa0', ' ')
+    if ustr.find(u'\u0009') >= 0:
+        ustr = ustr.replace(u'\u0009', ' ')
+    # replace double quotes with single quotes since double quotes are used in JSON file
+    if ustr.find('\n') >= 0:
+        ustr = ustr.replace('\n', '. ')
+    if ustr.find('\r') >= 0:
+        ustr = ustr.replace('\r', '. ')
+    if ustr.find('"') >= 0:
+        ustr = ustr.replace('"', "'")
+    ustr = unidecode(ustr)
+    OnlyAscii = lambda s: re.match('^[\x00-\x7F]+$', s) != None
+    if not OnlyAscii(ustr):
+        ustr = ustr.encode('ascii')
+    return ustr
 
 
 def create_links_from_messages(sc, msgs, ch_id, ch_name):
@@ -380,7 +416,7 @@ if __name__ == "__main__":
         jsonfile.write('            "email":"' + node_dict['email'] + '",\n')
         jsonfile.write('            "broadcast_msg_count":' + str(node_dict['broadcast_msg_count']) + ',\n')
         msgstr = node_dict['broadcast_messages']
-        jsonfile.write('            "broadcast_messages":"' + msgstr + '"\n')
+        jsonfile.write('            "broadcast_messages":"' + process_str(msgstr) + '"\n')
         i += 1
 
     jsonfile.write('        }\n')
@@ -405,13 +441,13 @@ if __name__ == "__main__":
         jsonfile.write('            "type":"' + msg_dict['type'] + '",\n')
         jsonfile.write('            "channel":"' + msg_dict['channel'] + '",\n')
         # convert unicode message str to ascii in order for js d3 to handle message display correctly
-        thtxtstr = msg_dict['text']
+        thtxtstr = process_str(msg_dict['text'])
         jsonfile.write('            "text":"' + thtxtstr + '",\n')
         if 'threaded_text' in msg_dict:
-            thtxtstr = msg_dict['threaded_text']
+            thtxtstr = process_str(msg_dict['threaded_text'])
             jsonfile.write('            "threaded_text":"' + thtxtstr + '",\n')
         if 'reactions' in msg_dict:
-            thtxtstr = msg_dict['reactions']
+            thtxtstr = process_str(msg_dict['reactions'])
             jsonfile.write('            "reactions":"' + thtxtstr + '",\n')
 
         jsonfile.write('            "count":' + str(msg_dict['count']) + '\n')
