@@ -8,7 +8,7 @@ var unitVals = new Array("green", "orange", "blue", "red", "grey", "purple", "ye
 var unitColors = new Array("#00ff00", "#ffa500", "#0000ff", "#ff0000", "#d3d3d3", "#800080", "#ffff00");
 // the first and last empty string entries are needed to do ceiling snapshot time for each slider range
 // the last empty string entry represents current latest data
-var hist_data_ts = new Array("", "08-29-17", "09-15-17", "11-30-17", "12-25-17", "01-30-18", "02-28-18", "03-31-18", "04-28-18", "");
+var hist_data_ts = new Array("", "08-29-17", "09-15-17", "11-30-17", "12-25-17", "01-30-18", "02-28-18", "03-31-18", "04-28-18", "08-09-18", "");
 var curr_ts_idx = hist_data_ts.length-1;
 var unit = 100/(hist_data_ts.length-1);
 
